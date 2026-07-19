@@ -1,0 +1,17 @@
+{
+  "name": "ReelCheck — Fact-check reels",
+  "short_name": "ReelCheck",
+  "description": "Check if a reel is telling the truth.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "icons": [
+    { "src": "/static/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "GET",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  }
+}

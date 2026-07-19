@@ -1,0 +1,32 @@
+# Render.com blueprint. Push this repo to GitHub, then in Render:
+# New + -> Blueprint -> pick your repo. It reads this file automatically.
+# After it deploys, add your keys under the service's "Environment" tab
+# (do NOT commit real keys — .env is gitignored).
+services:
+  - type: web
+    name: reelcheck
+    runtime: docker
+    plan: free
+    envVars:
+      - key: GROQ_API_KEYS
+        sync: false
+      - key: GROQ_LLM_API_KEYS
+        sync: false
+      - key: GEMINI_API_KEYS
+        sync: false
+      - key: DEEPGRAM_API_KEYS
+        sync: false
+      - key: ASSEMBLYAI_API_KEYS
+        sync: false
+      - key: OPENROUTER_API_KEYS
+        sync: false
+      - key: GOOGLE_FACTCHECK_API_KEYS
+        sync: false
+      - key: TAVILY_API_KEYS
+        sync: false
+      - key: BRAVE_API_KEYS
+        sync: false
+      - key: STATS_TOKEN
+        sync: false
+      - key: ENABLE_LOCAL_WHISPER
+        value: "0"

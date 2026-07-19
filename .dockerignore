@@ -1,0 +1,15 @@
+# Keep secrets and local cruft OUT of the Docker image.
+# (Docker does NOT read .gitignore, so this must be listed separately.)
+.env
+cookies.txt
+*.db
+reelcheck.db
+logs/
+*.log
+__pycache__/
+*.pyc
+.venv/
+venv/
+.git/
+*.info.json
+cloudflared.exe

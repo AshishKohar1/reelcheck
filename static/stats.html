@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReelCheck — API usage</title>
+<style>
+  :root{--bg:#0b1220;--card:#131c2e;--line:#233048;--txt:#e8eef8;--mut:#93a2bd;
+        --good:#2ecc71;--warn:#f1c40f;--danger:#e74c3c;--blue:#4f8cff}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--txt)}
+  .wrap{max-width:900px;margin:0 auto;padding:24px 16px 80px}
+  h1{font-size:1.4rem}
+  .mut{color:var(--mut)}
+  .chain{margin-top:22px}
+  .chain h2{font-size:1rem;text-transform:uppercase;letter-spacing:.05em;color:var(--blue);margin-bottom:8px}
+  table{width:100%;border-collapse:collapse;background:var(--card);border-radius:12px;overflow:hidden}
+  th,td{padding:9px 10px;text-align:left;font-size:.9rem;border-bottom:1px solid var(--line)}
+  th{color:var(--mut);font-weight:600}
+  tr:last-child td{border-bottom:0}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+  .up{background:var(--good)} .down{background:var(--danger)}
+  .bar{height:7px;background:#0e1626;border-radius:99px;overflow:hidden;width:80px;display:inline-block;vertical-align:middle}
+  .bar>i{display:block;height:100%;background:var(--blue)}
+  .q{color:var(--warn)} .e{color:var(--danger)}
+  .foot{margin-top:20px;font-size:.85rem}
+  code{background:#0e1626;padding:2px 6px;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📊 ReelCheck — API usage</h1>
+  <p class="mut">Counters <b>persist across restarts &amp; deploys</b> (stored in the DB) — they are not reset when a new version ships. Auto-refreshes every 5s.
+     <span id="ts"></span>
+     <button id="refresh" style="margin-left:10px;padding:5px 12px;border-radius:8px;border:1px solid var(--line);background:#0e1626;color:var(--txt);cursor:pointer">↻ Refresh live quota from Groq</button>
+  </p>
+  <div id="body"></div>
+  <div class="foot mut">
+    <p><b>Reading this:</b> each row is one API key in a failover chain, tried top to bottom.
+    <b>Success %</b> = successful calls ÷ attempts on that key. <b>Quota</b> = times it hit its
+    free-tier limit (429). A <span class="dot down"></span> means it's on cooldown right now.</p>
+    <p>Most free APIs don't report remaining quota; <b>Groq does</b> — <b>Remaining</b> shows its
+    real requests-left (with reset time) fetched live from Groq's response headers.
+    Full history is in <code>logs/reelcheck.log</code>.</p>
+  </div>
+</div>
+<script>
+// The stats page is opened as /stats?token=XXX — forward that token to the APIs.
+const TOKEN = new URLSearchParams(location.search).get("token") || "";
+const Q = "?token=" + encodeURIComponent(TOKEN);
+async function load(){
+  try{
+    const d = await (await fetch("/api/stats" + Q)).json();
+    document.getElementById("ts").textContent = "Updated " + new Date().toLocaleTimeString();
+    document.getElementById("body").innerHTML = d.chains.map(renderChain).join("");
+  }catch(e){ document.getElementById("body").innerHTML = "<p class='mut'>Server not reachable.</p>"; }
+}
+function renderChain(ch){
+  const rows = ch.slots.map(s => {
+    const up = s.available;
+    const rl = s.rate_limit
+      ? `${s.rate_limit.remaining}/${s.rate_limit.limit||"?"}` +
+        (s.rate_limit.reset ? `<br><span class="mut" style="font-size:.78rem">resets ${s.rate_limit.reset}</span>` : "")
+      : "—";
+    const succ = s.success_pct===null ? "—" : s.success_pct+"%";
+    const barW = s.success_pct===null ? 0 : s.success_pct;
+    return `<tr>
+      <td><span class="dot ${up?'up':'down'}"></span>${s.provider}</td>
+      <td class="mut">${s.key}</td>
+      <td>${s.calls}</td>
+      <td>${s.ok}</td>
+      <td class="q">${s.quota_hits||0}</td>
+      <td class="e">${s.errors||0}</td>
+      <td><span class="bar"><i style="width:${barW}%"></i></span> ${succ}</td>
+      <td>${up?'ready':('cooldown '+s.cooldown_s+'s')}</td>
+      <td>${rl}</td>
+    </tr>`;
+  }).join("");
+  return `<div class="chain"><h2>${ch.chain}</h2>
+    <table><thead><tr>
+      <th>Provider</th><th>Key</th><th>Calls</th><th>OK</th><th>Quota</th><th>Err</th>
+      <th>Success</th><th>Status</th><th>Remaining</th>
+    </tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+document.getElementById("refresh").onclick = async (e) => {
+  e.target.disabled = true; e.target.textContent = "Fetching from Groq…";
+  try{
+    const d = await (await fetch("/api/quota/refresh" + Q, {method:"POST"})).json();
+    document.getElementById("body").innerHTML = d.chains.map(renderChain).join("");
+  }catch(err){}
+  e.target.disabled = false; e.target.textContent = "↻ Refresh live quota from Groq";
+};
+load(); setInterval(load, 5000);
+</script>
+</body>
+</html>

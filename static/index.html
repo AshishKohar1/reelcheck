@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1220">
+<link rel="manifest" href="/manifest.json">
+<title>ReelCheck — Is this reel telling the truth?</title>
+<style>
+  :root{--bg:#0b1220;--card:#131c2e;--line:#233048;--txt:#e8eef8;--mut:#93a2bd;
+        --good:#2ecc71;--ok:#7bd389;--warn:#f1c40f;--danger:#e74c3c;--blue:#4f8cff}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);
+       color:var(--txt);line-height:1.5}
+  .wrap{max-width:680px;margin:0 auto;padding:24px 16px 80px}
+  h1{font-size:1.6rem;margin:.2em 0}
+  .sub{color:var(--mut);margin:0 0 20px}
+  .box{display:flex;gap:8px;flex-wrap:wrap}
+  input{flex:1;min-width:200px;padding:14px;border-radius:12px;border:1px solid var(--line);
+        background:#0e1626;color:var(--txt);font-size:1rem}
+  button{padding:14px 20px;border:0;border-radius:12px;background:var(--blue);color:#fff;
+         font-size:1rem;font-weight:600;cursor:pointer}
+  button:disabled{opacity:.5;cursor:default}
+  .hint{color:var(--mut);font-size:.85rem;margin-top:8px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+        padding:18px;margin-top:18px}
+  .banner{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.15rem}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.8rem;font-weight:700}
+  .accurate,.good{background:rgba(46,204,113,.15);color:var(--good)}
+  .mixed,.ok{background:rgba(241,196,15,.15);color:var(--warn)}
+  .misleading,.danger,.warn{background:rgba(231,76,60,.15);color:var(--danger)}
+  .unverifiable,.no_claims{background:rgba(147,162,189,.15);color:var(--mut)}
+  .claim{border-top:1px solid var(--line);padding:14px 0}
+  .claim:first-of-type{border-top:0}
+  .ctext{font-weight:600;margin-bottom:6px}
+  .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--mut);font-size:.9rem}
+  .vrow{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;font-size:.9rem;margin-bottom:6px}
+  .vrow .reason{color:var(--mut);flex:1;min-width:170px;line-height:1.45}
+  .confrow{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:.9rem;margin-top:6px}
+  .pill{flex:0 0 auto}
+  .infer{color:var(--txt);font-size:.92rem;margin:8px 0;padding-left:10px;border-left:2px solid var(--blue)}
+  .conf{height:7px;background:#0e1626;border-radius:99px;overflow:hidden;flex:1;min-width:90px}
+  .conf>i{display:block;height:100%;background:var(--blue)}
+  .srcs{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap}
+  .srcs img{width:18px;height:18px;border-radius:4px;background:#fff}
+  .rep{margin-top:16px;padding:12px 14px;border-radius:12px;font-weight:600}
+  .busy{background:rgba(241,196,15,.12);color:var(--warn);padding:16px;border-radius:12px;margin-top:18px}
+  .spin{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--blue);
+        border-radius:50%;animation:s .8s linear infinite;margin:20px auto}
+  @keyframes s{to{transform:rotate(360deg)}}
+  a{color:var(--blue)}
+  /* trust header (new format) */
+  .tline{font-size:1.15rem;font-weight:600}
+  .score-inline{font-weight:800}
+  .score-inline.good{color:var(--good)} .score-inline.ok{color:var(--warn)}
+  .score-inline.bad{color:var(--danger)} .score-inline.na{color:var(--mut)}
+  .metrics{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;color:var(--mut);font-size:.95rem}
+  .metrics b{color:var(--txt);font-size:1.05rem}
+  .metrics .sep{color:var(--line)}
+  .metrics .fc b{color:var(--danger)}
+  .cbtn{margin-top:14px;background:#0e1626;border:1px solid var(--line);color:var(--txt);
+        padding:9px 16px;border-radius:10px;font-size:.92rem;font-weight:600}
+  .cbtn:hover{border-color:var(--blue)}
+  .cbtn.open{border-color:var(--blue);color:var(--blue)}
+  /* trust header (legacy, still used by loader) */
+  .thead{display:flex;align-items:center;gap:16px}
+  .score{font-size:2.6rem;font-weight:800;line-height:1}
+  .score.good{color:var(--good)} .score.ok{color:var(--warn)} .score.bad{color:var(--danger)}
+  .score.na{color:var(--mut);font-size:1.4rem}
+  .tlabel{font-weight:700;font-size:1.05rem}
+  .counts{color:var(--mut);font-size:.9rem;margin-top:3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .chip{background:#0e1626;border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:.82rem}
+  .info{margin-left:auto;cursor:pointer;border:1px solid var(--line);background:#0e1626;color:var(--mut);
+        width:30px;height:30px;border-radius:50%;font-weight:700;font-size:.95rem;flex:0 0 auto}
+  .info:hover{color:var(--txt);border-color:var(--blue)}
+  .details{margin-top:14px;border-top:1px solid var(--line);padding-top:6px}
+  .details[hidden]{display:none}
+  .breakdown{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 4px}
+  .op{border-top:1px solid var(--line);padding:12px 0}
+  .op .ctext{color:var(--txt)}
+  .optag{background:rgba(147,162,189,.15);color:var(--mut)}
+  /* impact counter (always on top) */
+  .impact{display:flex;justify-content:center;gap:8px 18px;flex-wrap:wrap;align-items:center;
+          background:linear-gradient(90deg,rgba(79,140,255,.12),rgba(46,204,113,.10));
+          border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:.92rem}
+  .impact b{color:var(--txt)} .impact .w b{color:var(--danger)}
+  /* live pipeline */
+  .pipe{margin:2px 0 16px}
+  .stage{display:flex;align-items:center;gap:10px;padding:5px 0;color:var(--mut);font-size:.95rem;transition:color .3s}
+  .stage .dot2{width:15px;height:15px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto;box-sizing:border-box}
+  .stage.active{color:var(--txt)}
+  .stage.active .dot2{border-color:var(--blue);border-top-color:transparent;animation:s .8s linear infinite}
+  .stage.done{color:var(--good)} .stage.done .dot2{background:var(--good);border-color:var(--good)}
+  /* source wall loading logos */
+  .wall{text-align:center;margin-top:4px}
+  .wall .lbl{color:var(--mut);font-size:.85rem;margin-bottom:12px}
+  .circles{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+  .circ{width:44px;height:44px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;
+        border:2px solid var(--line);opacity:.4;transition:all .25s;overflow:hidden}
+  .circ img{width:26px;height:26px}
+  .circ.on{opacity:1;border-color:var(--blue);box-shadow:0 0 14px rgba(79,140,255,.6);transform:scale(1.12)}
+  /* spot-the-fake quiz */
+  .quizcard h3{margin:.1em 0 2px;font-size:1.02rem}
+  .qsub{color:var(--mut);font-size:.85rem}
+  .qscore{float:right;color:var(--mut);font-size:.82rem}
+  .qstmt{font-weight:600;font-size:1.05rem;margin:14px 0;line-height:1.5}
+  .qbtns{display:flex;gap:10px}
+  .qbtns button{flex:1}
+  .qbtns .fake{background:var(--danger)} .qbtns .real{background:var(--good)}
+  .qans{margin-top:12px;font-size:.92rem;padding:11px 13px;border-radius:10px;line-height:1.5}
+  .qans.right{background:rgba(46,204,113,.12);color:var(--good)}
+  .qans.wrong{background:rgba(231,76,60,.12);color:var(--danger)}
+  .qans b{color:var(--txt)}
+  .qnext{margin-top:10px;background:#0e1626;border:1px solid var(--line);color:var(--txt);padding:8px 16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🛡️ ReelCheck</h1>
+  <p class="sub">Paste a reel link. We check if the facts are true, whether the conclusion is fair, and show our sources.</p>
+
+  <div class="impact" id="impact"></div>
+
+  <div class="box">
+    <input id="url" placeholder="Paste Instagram reel / YouTube Short link…" autocomplete="off">
+    <button id="go">Check</button>
+  </div>
+  <div class="hint">Free market-test build. Works with any link you can copy. On Android you can also “Share → ReelCheck”.</div>
+
+  <div id="out"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const out = $("#out"), input = $("#url"), go = $("#go");
+
+// If opened via Android share sheet, the server injects the shared URL here.
+const shared = "__SHARED_URL__";
+
+go.onclick = run;
+input.addEventListener("keydown", e => { if (e.key === "Enter") run(); });
+
+// ---- engagement layer: impact counter, live pipeline, quiz ----
+const SOURCES = ["bbc.com","reuters.com","apnews.com","thehindu.com",
+                 "indianexpress.com","pib.gov.in","boomlive.in","altnews.in"];
+const STAGES = ["Downloading the reel","Transcribing the audio","Extracting the claims",
+                "Cross-checking trusted sources","Weighing the evidence"];
+let quizData = [], quizIdx = 0, quizScore = 0, quizAnswered = 0, loaders = [];
+
+async function fetchImpact(){
+  try{
+    const d = await (await fetch("/api/impact")).json();
+    document.getElementById("impact").innerHTML =
+      `🛡️ <b>${d.reels.toLocaleString()}</b>&nbsp;reels checked` +
+      `<span class="w">⚠️ <b>${d.wrong.toLocaleString()}</b>&nbsp;found with false facts</span>`;
+  }catch(e){}
+}
+async function ensureQuiz(){
+  if(quizData.length) return;
+  try{
+    quizData = (await (await fetch("/api/quiz")).json()).questions || [];
+    // shuffle so questions appear in a random order each page load
+    for(let i = quizData.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [quizData[i], quizData[j]] = [quizData[j], quizData[i]];
+    }
+  }catch(e){}
+}
+
+function buildLoading(){
+  const stages = STAGES.map(s => `<div class="stage"><span class="dot2"></span><span>${s}</span></div>`).join("");
+  const circles = SOURCES.map(d => `<div class="circ"><img src="${favicon(d)}" alt=""></div>`).join("");
+  out.innerHTML =
+    `<div class="card">
+       <div class="pipe">${stages}</div>
+       <div class="wall"><div class="lbl">Cross-checking against trusted sources…</div>
+         <div class="circles">${circles}</div></div>
+     </div>
+     <div class="card quizcard" id="quizcard"></div>`;
+
+  const stageEls = [...document.querySelectorAll('.stage')];
+  stageEls[0].classList.add('active');
+  let si = 0;
+  loaders.push(setInterval(() => {
+    if(si < stageEls.length - 1){
+      stageEls[si].classList.replace('active','done');
+      stageEls[++si].classList.add('active');
+    }
+  }, 2600));
+
+  const circEls = [...document.querySelectorAll('.circ')];
+  let ci = 0;
+  loaders.push(setInterval(() => {
+    circEls.forEach(c => c.classList.remove('on'));
+    circEls[ci % circEls.length].classList.add('on');
+    circEls[(ci+1) % circEls.length].classList.add('on');
+    ci++;
+  }, 260));
+
+  renderQuiz();
+}
+function stopLoading(){ loaders.forEach(clearInterval); loaders = []; }
+
+function renderQuiz(){
+  const el = document.getElementById("quizcard");
+  if(!el) return;
+  if(!quizData.length){ el.innerHTML = `<h3>🎯 Spot the fake</h3><p class="qsub">Loading questions…</p>`; return; }
+  const q = quizData[quizIdx % quizData.length];
+  el.innerHTML =
+    `<div class="qscore">Score ${quizScore}/${quizAnswered}</div>
+     <h3>🎯 Spot the fake — while you wait</h3>
+     <div class="qsub">Real headline or misinformation? Tap your guess.</div>
+     <div class="qstmt">“${esc(q.statement)}”</div>
+     <div class="qbtns"><button class="real" data-g="0">✅ Real</button><button class="fake" data-g="1">🚫 Fake</button></div>
+     <div id="qans"></div>`;
+  el.querySelectorAll('.qbtns button').forEach(b =>
+    b.onclick = () => answerQuiz(q, b.dataset.g === "1"));
+}
+function answerQuiz(q, guessFake){
+  quizAnswered++;
+  const correct = (guessFake === q.is_fake);
+  if(correct) quizScore++;
+  document.querySelectorAll('.qbtns button').forEach(b => b.disabled = true);
+  const ans = document.getElementById("qans");
+  ans.className = "qans " + (correct ? "right" : "wrong");
+  ans.innerHTML = `<b>${correct ? "✅ Correct!" : "❌ Not quite —"}</b> ${esc(q.explanation)}
+     <div><button class="qnext" id="qnext">Next question →</button></div>`;
+  const sc = document.querySelector('.qscore'); if(sc) sc.textContent = `Score ${quizScore}/${quizAnswered}`;
+  document.getElementById("qnext").onclick = () => { quizIdx++; renderQuiz(); };
+}
+
+async function run(){
+  const url = input.value.trim();
+  if(!url){ input.focus(); return; }
+  go.disabled = true;
+  await ensureQuiz();
+  buildLoading();
+  try{
+    const r = await fetch("/api/verify", {method:"POST", headers:{"Content-Type":"application/json"},
+                                          body: JSON.stringify({url})});
+    const d = await r.json();
+    stopLoading();
+    render(d);
+    fetchImpact();
+  }catch(e){ stopLoading(); out.innerHTML = card(`<div class="busy">Network error. Please try again.</div>`); }
+  go.disabled = false;
+}
+
+function favicon(domain){ return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`; }
+function card(inner){ return `<div class="card">${inner}</div>`; }
+const esc = s => (s||"").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+const TLABEL = {accurate:"Trustworthy",mixed:"Mixed accuracy",misleading:"Mostly false",
+                no_facts:"Opinion-based",no_claims:"Nothing to check"};
+
+function render(d){
+  if(d.busy){ out.innerHTML = `<div class="busy">⏳ ${d.message}</div>`; return; }
+  if(d.error){ out.innerHTML = `<div class="busy">${d.error}</div>`; return; }
+  if(d.overall==="no_claims"){ out.innerHTML = card(`<p style="color:var(--mut)">${esc(d.summary)}</p>`); return; }
+
+  // ---- header: bold Trust line + facts | opinions | false claims + button ----
+  const t = d.trust_pct;
+  const band = t===null ? "na" : t>=80 ? "good" : t>=50 ? "ok" : "bad";
+  const scoreTxt = t===null ? "—" : t + "%";
+  let html = `<div class="thead">
+    <div class="tline">Trust score for this reel: <b class="score-inline ${band}">${scoreTxt}</b></div>
+    ${d.cached?`<span class="chip" style="align-self:center">cached</span>`:""}
+  </div>
+  <div class="metrics">
+    <span><b>${d.n_facts}</b> fact${d.n_facts===1?"":"s"}</span><span class="sep">|</span>
+    <span><b>${d.n_opinions}</b> opinion${d.n_opinions===1?"":"s"}</span><span class="sep">|</span>
+    <span class="fc"><b>${d.n_false}</b> false claim${d.n_false===1?"":"s"}</span>
+  </div>
+  <button class="cbtn" id="infoBtn">Complete check ▾</button>`;
+
+  // ---- details (hidden until ⓘ) ----
+  let det = `<div class="breakdown">
+     <span class="chip">✅ ${d.n_true} true</span>
+     <span class="chip">❌ ${d.n_false} false</span>
+     <span class="chip">❓ ${d.n_unverifiable} unverifiable</span>
+   </div>
+   <p class="counts">Trust % = true facts ÷ all facts. Opinions are shown but excluded from the score.</p>`;
+
+  (d.claims||[]).forEach(c => {
+    const conf = c.confidence||0;
+    const srcs = (c.sources||[]).map(s =>
+      `<a href="${esc(s.url)}" target="_blank" rel="noopener"><img src="${favicon(s.domain)}" title="${esc(s.domain)}" alt=""></a>`).join("");
+    det += `<div class="claim">
+      <div class="ctext">${esc(c.claim)}</div>
+      <div class="vrow"><span class="pill ${c.fact_verdict==='true'?'accurate':c.fact_verdict==='false'?'misleading':'unverifiable'}">
+        ${c.fact_verdict==='true'?'True':c.fact_verdict==='false'?'False':'Unverifiable'}</span>
+        <span class="reason">${esc(c.reason)}</span></div>
+      ${c.inference_note?`<div class="infer"><b>Inference:</b> ${esc(c.inference_note)}</div>`:""}
+      <div class="confrow"><span>Confidence ${conf}%</span>
+        <span class="conf"><i style="width:${conf}%"></i></span></div>
+      ${srcs?`<div class="srcs">Sources: ${srcs}</div>`:""}
+    </div>`;
+  });
+
+  (d.opinions||[]).forEach(o => {
+    det += `<div class="op">
+      <div class="ctext">${esc(o.claim)}</div>
+      <div class="vrow"><span class="pill optag">Opinion</span>
+        <span class="reason">Subjective — not a checkable fact, excluded from Trust %.</span></div>
+    </div>`;
+  });
+
+  html += `<div class="details" id="details" hidden>${det}</div>`;
+
+  if(d.reputation){
+    const rep = d.reputation;
+    html += `<div class="rep ${rep.band}">@${esc(rep.handle)}: ${rep.pct_incorrect}% of checked facts were false
+             (${rep.reels_checked} reels). ${esc(rep.label)}</div>`;
+  }
+  out.innerHTML = card(html);
+
+  const btn = document.getElementById("infoBtn"), details = document.getElementById("details");
+  if(btn) btn.onclick = () => {
+    details.hidden = !details.hidden;
+    btn.textContent = details.hidden ? "Complete check ▾" : "Hide details ▴";
+    btn.classList.toggle("open", !details.hidden);
+  };
+}
+
+// ---- init: runs after all const/let above are initialized ----
+fetchImpact();
+ensureQuiz();
+if (shared && shared.startsWith("http")) { input.value = shared; run(); }
+if("serviceWorker" in navigator){ navigator.serviceWorker.register("/sw.js").catch(()=>{}); }
+</script>
+</body>
+</html>
