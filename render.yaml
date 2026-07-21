@@ -28,5 +28,13 @@ services:
         sync: false
       - key: STATS_TOKEN
         sync: false
+      - key: YTDLP_PROXY
+        sync: false                # residential proxy URL — makes IG/YouTube work on the cloud
+      - key: DONATE_URL
+        sync: false                # your UPI/Razorpay/Ko-fi link for the donate button
+      - key: ADSENSE_CLIENT
+        sync: false                # e.g. ca-pub-1234567890 (optional, once AdSense-approved)
+      - key: ADSENSE_SLOT
+        sync: false                # AdSense ad-unit slot id (optional)
       - key: ENABLE_LOCAL_WHISPER
         value: "0"

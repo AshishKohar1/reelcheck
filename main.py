@@ -65,6 +65,16 @@ def sw():
     return FileResponse(BASE / "static" / "sw.js", media_type="application/javascript")
 
 
+@app.get("/api/config")
+def api_config():
+    """Front-end config for monetization (all optional, set via env vars)."""
+    return {
+        "donate_url": os.getenv("DONATE_URL", "").strip(),
+        "adsense_client": os.getenv("ADSENSE_CLIENT", "").strip(),
+        "adsense_slot": os.getenv("ADSENSE_SLOT", "").strip(),
+    }
+
+
 @app.get("/api/impact")
 def api_impact():
     """Public trust counter shown at the top of the page."""
@@ -108,12 +118,13 @@ async def verify(request: Request):
     try:
         return pipeline.verify_url(url)
     except P.AllProvidersDown as e:
-        mins = max(1, round(e.seconds / 60))
-        return JSONResponse(
-            {"busy": True,
-             "message": f"Server busy — free quota reached. Resumes in about {mins} min."},
-            status_code=503,
-        )
+        if e.quota_hit:
+            mins = max(1, round(e.seconds / 60))
+            msg = f"Server busy — free quota reached. Resumes in about {mins} min."
+        else:
+            # providers errored (not quota) — usually a reel we couldn't read/download
+            msg = "Couldn't process this reel — it may be private or unreadable. Try another."
+        return JSONResponse({"busy": True, "message": msg}, status_code=503)
     except Exception as e:
         return JSONResponse({"error": f"Could not verify this reel: {e}"}, status_code=500)
     finally:

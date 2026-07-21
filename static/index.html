@@ -112,6 +112,22 @@
   .qans.wrong{background:rgba(231,76,60,.12);color:var(--danger)}
   .qans b{color:var(--txt)}
   .qnext{margin-top:10px;background:#0e1626;border:1px solid var(--line);color:var(--txt);padding:8px 16px}
+  /* monetization: support / ads / footer */
+  .adslot{margin-top:18px;text-align:center;min-height:0}
+  .adslot .adlabel{color:var(--mut);font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
+  .support{margin-top:18px}
+  .supcard{background:linear-gradient(135deg,rgba(79,140,255,.10),rgba(46,204,113,.08));
+           border:1px solid var(--line);border-radius:16px;padding:18px;text-align:center}
+  .supcard h3{margin:0 0 4px;font-size:1.05rem}
+  .supcard p{margin:0 0 14px;color:var(--mut);font-size:.9rem}
+  .supbtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .donate{background:#e0245e;color:#fff;text-decoration:none;padding:11px 20px;border-radius:12px;font-weight:700;display:inline-block}
+  .donate:hover{filter:brightness(1.08)}
+  .ghost{background:#0e1626;border:1px solid var(--line);color:var(--txt);text-decoration:none;
+         padding:11px 18px;border-radius:12px;font-weight:600;display:inline-block}
+  .ghost:hover{border-color:var(--blue)}
+  .foot{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;
+        justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--mut);font-size:.82rem}
 </style>
 </head>
 <body>
@@ -128,6 +144,14 @@
   <div class="hint">Free market-test build. Works with any link you can copy. On Android you can also “Share → ReelCheck”.</div>
 
   <div id="out"></div>
+
+  <div id="adslot" class="adslot"></div>
+  <div id="support" class="support"></div>
+
+  <footer class="foot">
+    <span>🛡️ ReelCheck — independent, free fact-checking.</span>
+    <a href="mailto:ashishkohar4@gmail.com?subject=ReelCheck%20sponsorship">Sponsor / partner with us</a>
+  </footer>
 </div>
 
 <script>
@@ -321,9 +345,54 @@ function render(d){
   };
 }
 
+// ---- monetization: donations, ads, share (all driven by /api/config) ----
+async function loadConfig(){
+  let cfg = {};
+  try{ cfg = await (await fetch("/api/config")).json(); }catch(e){}
+  renderSupport(cfg);
+  renderAd(cfg);
+}
+function renderSupport(cfg){
+  const el = document.getElementById("support");
+  const donate = cfg.donate_url
+    ? `<a class="donate" href="${esc(cfg.donate_url)}" target="_blank" rel="noopener">❤ Donate</a>` : "";
+  el.innerHTML = `<div class="supcard">
+      <h3>Keep ReelCheck free &amp; independent</h3>
+      <p>No agenda, no paywall on the truth — just sources. Your support keeps it running for everyone.</p>
+      <div class="supbtns">
+        ${donate}
+        <a class="ghost" id="shareBtn" href="#">🔗 Share ReelCheck</a>
+      </div>
+    </div>`;
+  const sb = document.getElementById("shareBtn");
+  if(sb) sb.onclick = (e) => {
+    e.preventDefault();
+    const u = location.origin;
+    if(navigator.share){ navigator.share({title:"ReelCheck", text:"Check if a reel is telling the truth", url:u}); }
+    else { navigator.clipboard.writeText(u); sb.textContent = "✓ Link copied"; }
+  };
+}
+function renderAd(cfg){
+  const el = document.getElementById("adslot");
+  if(!cfg.adsense_client){ el.innerHTML = ""; return; }
+  if(!window.__adsLoaded){
+    const s = document.createElement("script");
+    s.async = true;
+    s.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=" + cfg.adsense_client;
+    s.crossOrigin = "anonymous";
+    document.head.appendChild(s);
+    window.__adsLoaded = true;
+  }
+  el.innerHTML = `<div class="adlabel">Advertisement</div>
+    <ins class="adsbygoogle" style="display:block" data-ad-client="${esc(cfg.adsense_client)}"
+      data-ad-slot="${esc(cfg.adsense_slot)}" data-ad-format="auto" data-full-width-responsive="true"></ins>`;
+  try{ (adsbygoogle = window.adsbygoogle || []).push({}); }catch(e){}
+}
+
 // ---- init: runs after all const/let above are initialized ----
 fetchImpact();
 ensureQuiz();
+loadConfig();
 if (shared && shared.startsWith("http")) { input.value = shared; run(); }
 if("serviceWorker" in navigator){ navigator.serviceWorker.register("/sw.js").catch(()=>{}); }
 </script>

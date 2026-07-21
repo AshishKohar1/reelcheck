@@ -56,6 +56,13 @@ def download_audio(url: str, workdir: str):
     elif browser:
         cmd += ["--cookies-from-browser", browser]
 
+    # Residential proxy — the fix for cloud hosting. Instagram/YouTube block
+    # datacenter IPs, so on a server set YTDLP_PROXY to a residential proxy URL
+    # (e.g. http://user:pass@host:port) and downloads look like a home connection.
+    proxy = os.getenv("YTDLP_PROXY", "").strip()
+    if proxy:
+        cmd += ["--proxy", proxy]
+
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
     if proc.returncode != 0:
         raise RuntimeError(

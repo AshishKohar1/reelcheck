@@ -45,9 +45,10 @@ class QuotaExceeded(Exception):
 
 
 class AllProvidersDown(Exception):
-    def __init__(self, seconds, errors=None):
+    def __init__(self, seconds, errors=None, quota_hit=False):
         self.seconds = max(1, int(seconds))
         self.errors = errors or []
+        self.quota_hit = quota_hit   # True = real rate-limit; False = providers errored
         super().__init__(f"all providers down, soonest in {self.seconds}s")
 
 
@@ -108,6 +109,7 @@ class Chain:
         soonest = None
         got_response = False
         last_result = None
+        quota_hit = False
         for slot in self.slots:
             if not slot.available():
                 soonest = _min(soonest, slot.wait_seconds())
@@ -119,6 +121,7 @@ class Chain:
                 result = slot.fn(slot.key, *args, **kwargs)
             except QuotaExceeded as e:
                 slot.quota += 1
+                quota_hit = True
                 slot.trip(e.retry_after)
                 soonest = _min(soonest, e.retry_after)
                 log.warning("[%s] QUOTA %s (%s) — cooldown %ds",
@@ -146,8 +149,8 @@ class Chain:
         if got_response:
             log.info("[%s] all providers responded but found nothing usable", self.label)
             return last_result, "none"
-        log.error("[%s] ALL DOWN — soonest %ss", self.label, soonest or 60)
-        raise AllProvidersDown(soonest if soonest is not None else 60, errors)
+        log.error("[%s] ALL DOWN — soonest %ss (quota_hit=%s)", self.label, soonest or 60, quota_hit)
+        raise AllProvidersDown(soonest if soonest is not None else 60, errors, quota_hit=quota_hit)
 
 
 def _note_remaining(key, resp):
