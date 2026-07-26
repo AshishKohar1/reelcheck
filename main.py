@@ -31,10 +31,20 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 import db
 import pipeline
 import providers as P
+import security
 
 app = FastAPI(title="ReelCheck")
 db.init_db()
 P.load_usage()   # restore provider counters/quota so /stats survives deploys
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    resp = await call_next(request)
+    for k, v in security.SECURITY_HEADERS.items():
+        resp.headers.setdefault(k, v)
+    return resp
+
 
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 
@@ -114,7 +124,20 @@ async def verify(request: Request):
     url = (data.get("url") or "").strip()
     if not url:
         return JSONResponse({"error": "Please paste a reel link."}, status_code=400)
-    log.info("VERIFY request: %s", url)
+
+    ok, reason = security.url_ok(url)
+    if not ok:
+        return JSONResponse({"error": reason}, status_code=400)
+
+    ip = security.client_ip(request)
+    if not security.rate_ok(ip):
+        log.warning("RATE LIMIT hit by %s", ip)
+        return JSONResponse(
+            {"busy": True, "message": "Too many checks — please wait a minute and try again."},
+            status_code=429,
+        )
+
+    log.info("VERIFY request from %s: %s", ip, url)
     try:
         return pipeline.verify_url(url)
     except P.AllProvidersDown as e:
