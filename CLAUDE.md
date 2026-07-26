@@ -32,9 +32,14 @@ received fully fund the tool's running costs.** Everything we build should serve
 credibility (sources shown, neutral, reliable) because that is what wins grants.
 See `MONETIZE.md` for all avenues.
 
-**Deployment / going live:** push to GitHub → Render auto-deploys from `render.yaml`
-(Docker). Live URL is currently **https://reelcheck-maaz.onrender.com** — this is the
-link to share (or a Cloudflare quick-tunnel of the laptop) **until we buy a `.in`
-domain**. After each change: commit → push → Render redeploys → verify on the live
-URL, and report that live link. Secrets (keys, `YTDLP_PROXY`, `DONATE_URL`,
-`STATS_TOKEN`) are set in Render's Environment tab, never committed.
+**Deployment / going live (PRODUCTION = laptop + Cloudflare named tunnel):**
+Live at **https://reelcheck.in**. A cloudflared *named* tunnel (id `74447cf8-…`,
+config `~/.cloudflared/config.yml`) forwards the domain to the laptop's
+`localhost:8000`. The laptop's **residential IP** is why Instagram/YouTube downloads
+work here but NOT on a cloud host (datacenter IPs are blocked). Laptop must stay
+awake; both `python main.py` and `cloudflared tunnel run reelcheck` run as background
+processes — **restart both if the laptop reboots**. App binds `127.0.0.1` only
+(reachable solely via the tunnel). Secrets in `.env` (laptop), never committed.
+Render (`render.yaml`, Docker) is a deployed mirror that can't download reels unless
+`YTDLP_PROXY` (residential proxy) is set. Security: SSRF/URL allowlist + per-IP rate
+limit + security headers (`security.py`); `/stats` is token-gated.
