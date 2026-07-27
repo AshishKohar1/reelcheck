@@ -9,6 +9,7 @@ load_dotenv()
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.concurrency import run_in_threadpool
 
 BASE = Path(__file__).parent
 
@@ -51,6 +52,8 @@ app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 
 NO_CACHE = {"Cache-Control": "no-store, max-age=0"}
 STATS_TOKEN = os.getenv("STATS_TOKEN", "")
+MAX_CONCURRENT_VERIFY = int(os.getenv("MAX_CONCURRENT_VERIFY", "3"))
+_inflight = 0   # heavy verifies currently running (protects the laptop)
 
 
 def _require_stats_token(request: Request):
@@ -138,8 +141,20 @@ async def verify(request: Request):
         )
 
     log.info("VERIFY request from %s: %s", ip, url)
+
+    # Concurrency cap. The check+increment has no await between them, so it's
+    # atomic on the single-threaded event loop — no lock needed.
+    global _inflight
+    if _inflight >= MAX_CONCURRENT_VERIFY:
+        return JSONResponse(
+            {"busy": True, "message": "Server busy right now — please try again in a few seconds."},
+            status_code=503,
+        )
+    _inflight += 1
     try:
-        return pipeline.verify_url(url)
+        # Run the blocking pipeline in a worker thread so the event loop stays
+        # free (other users' page loads + the health check keep responding).
+        return await run_in_threadpool(pipeline.verify_url, url)
     except P.AllProvidersDown as e:
         if e.quota_hit:
             mins = max(1, round(e.seconds / 60))
@@ -151,6 +166,7 @@ async def verify(request: Request):
     except Exception as e:
         return JSONResponse({"error": f"Could not verify this reel: {e}"}, status_code=500)
     finally:
+        _inflight -= 1
         P.persist_usage()   # save counters/quota so /stats stays correct across deploys
 
 
