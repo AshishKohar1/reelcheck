@@ -126,6 +126,7 @@
            border:1px solid var(--line);border-radius:16px;padding:18px;text-align:center}
   .supcard h3{margin:0 0 4px;font-size:1.05rem}
   .supcard p{margin:0 0 14px;color:var(--mut);font-size:.9rem}
+  .supcard .appeal{font-weight:700;color:var(--txt);font-size:1rem;margin:0 0 14px}
   .supbtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
   .donate{background:#e0245e;color:#fff;text-decoration:none;padding:11px 20px;border-radius:12px;font-weight:700;display:inline-block}
   .donate:hover{filter:brightness(1.08)}
@@ -358,6 +359,7 @@ function renderSupport(cfg){
   el.innerHTML = `<div class="supcard">
       <h3>Support this self-funded platform</h3>
       <p>ReelCheck is independent and self-funded — no agenda, no paywall on the truth. Your support (UPI, card, netbanking) keeps it running for everyone.</p>
+      <p class="appeal">Even ₹10 helps us fight fake news and work towards an honest, corruption-free future. 🙏</p>
       <div class="supbtns">
         ${donate}
         <a class="ghost" id="shareBtn" href="#">🔗 Share</a>
