@@ -85,6 +85,7 @@ def api_config():
         "donate_url": os.getenv("DONATE_URL", "").strip(),
         "adsense_client": os.getenv("ADSENSE_CLIENT", "").strip(),
         "adsense_slot": os.getenv("ADSENSE_SLOT", "").strip(),
+        "snapwidget_id": os.getenv("SNAPWIDGET_ID", "").strip(),
     }
 
 

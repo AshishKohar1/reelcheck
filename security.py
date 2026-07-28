@@ -85,7 +85,9 @@ SECURITY_HEADERS = {
     "Referrer-Policy": "no-referrer",
     "Content-Security-Policy": (
         "default-src 'self'; img-src 'self' https: data:; "
-        "script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
-        "connect-src 'self'; base-uri 'self'; frame-ancestors 'self'"
+        "script-src 'self' 'unsafe-inline' https://snapwidget.com; "
+        "style-src 'self' 'unsafe-inline'; "
+        "connect-src 'self'; frame-src https://snapwidget.com; "
+        "base-uri 'self'; frame-ancestors 'self'"
     ),
 }

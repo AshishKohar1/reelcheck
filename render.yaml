@@ -36,5 +36,7 @@ services:
         sync: false                # e.g. ca-pub-1234567890 (optional, once AdSense-approved)
       - key: ADSENSE_SLOT
         sync: false                # AdSense ad-unit slot id (optional)
+      - key: SNAPWIDGET_ID
+        sync: false                # SnapWidget id for the Instagram grid (optional)
       - key: ENABLE_LOCAL_WHISPER
         value: "0"

@@ -112,8 +112,11 @@
   .qans.wrong{background:rgba(231,76,60,.12);color:var(--danger)}
   .qans b{color:var(--txt)}
   .qnext{margin-top:10px;background:#0e1626;border:1px solid var(--line);color:var(--txt);padding:8px 16px}
-  /* our Instagram button */
+  /* our Instagram button / grid */
   #insta{margin-top:18px;text-align:center}
+  .igtitle{font-weight:700;margin-bottom:10px;text-align:left}
+  .snapwidget-widget{min-height:220px}
+  .igfollow{margin-top:12px}
   .instabtn{display:inline-flex;align-items:center;gap:10px;background:#0e1626;border:1px solid var(--line);
             color:var(--txt);text-decoration:none;padding:11px 18px;border-radius:12px;font-weight:600;font-size:.92rem}
   .instabtn:hover{border-color:#d62976}
@@ -346,6 +349,7 @@ async function loadConfig(){
   let cfg = {};
   try{ cfg = await (await fetch("/api/config")).json(); }catch(e){}
   renderSupport(cfg);
+  renderInsta(cfg);
 }
 function renderSupport(cfg){
   const el = document.getElementById("support");
@@ -376,18 +380,32 @@ const IG_SVG = `<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="tru
   <rect x="2" y="2" width="20" height="20" rx="6" fill="url(#ig)"/>
   <circle cx="12" cy="12" r="4.6" fill="none" stroke="#fff" stroke-width="2"/>
   <circle cx="17.4" cy="6.6" r="1.3" fill="#fff"/></svg>`;
-function renderInsta(){
+function renderInsta(cfg){
   const el = document.getElementById("insta");
   if(!el) return;
-  el.innerHTML = `<a class="instabtn" href="https://www.instagram.com/projectbharat2.0" target="_blank" rel="noopener">
+  const follow = `<a class="instabtn" href="https://www.instagram.com/projectbharat2.0" target="_blank" rel="noopener">
       ${IG_SVG}<span>Follow us on Instagram — @projectbharat2.0</span></a>`;
+  if(cfg && cfg.snapwidget_id){
+    // load SnapWidget's auto-resize script once
+    if(!window.__swLoaded){
+      const s = document.createElement("script");
+      s.async = true; s.src = "https://snapwidget.com/js/snapwidget.js";
+      document.head.appendChild(s); window.__swLoaded = true;
+    }
+    el.innerHTML = `<div class="igtitle">📸 From our Instagram — @projectbharat2.0</div>
+      <iframe src="https://snapwidget.com/embed/${esc(cfg.snapwidget_id)}" class="snapwidget-widget"
+        allowtransparency="true" frameborder="0" scrolling="no"
+        style="border:none;overflow:hidden;width:100%;" title="Instagram posts"></iframe>
+      <div class="igfollow">${follow}</div>`;
+  } else {
+    el.innerHTML = follow;
+  }
 }
 
 // ---- init: runs after all const/let above are initialized ----
 fetchImpact();
 ensureQuiz().then(renderQuiz);   // permanent quiz, playable from the start
-renderInsta();
-loadConfig();
+loadConfig();                    // renders support + Instagram (grid or follow button)
 if (shared && shared.startsWith("http")) { input.value = shared; run(); }
 if("serviceWorker" in navigator){ navigator.serviceWorker.register("/sw.js").catch(()=>{}); }
 </script>
