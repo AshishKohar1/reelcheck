@@ -174,6 +174,7 @@ def verify_url(url: str):
     if cached:
         cached["cached"] = True
         cached["reputation"] = db.get_handle_reputation(cached.get("handle") or handle)
+        db.bump_impact()   # count every check, even a cached repeat
         return cached
 
     with tempfile.TemporaryDirectory() as wd:

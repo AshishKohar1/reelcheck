@@ -112,6 +112,11 @@
   .qans.wrong{background:rgba(231,76,60,.12);color:var(--danger)}
   .qans b{color:var(--txt)}
   .qnext{margin-top:10px;background:#0e1626;border:1px solid var(--line);color:var(--txt);padding:8px 16px}
+  /* our Instagram button */
+  #insta{margin-top:18px;text-align:center}
+  .instabtn{display:inline-flex;align-items:center;gap:10px;background:#0e1626;border:1px solid var(--line);
+            color:var(--txt);text-decoration:none;padding:11px 18px;border-radius:12px;font-weight:600;font-size:.92rem}
+  .instabtn:hover{border-color:#d62976}
   /* monetization: support card */
   .support{margin-top:18px}
   .supcard{background:linear-gradient(135deg,rgba(79,140,255,.10),rgba(46,204,113,.08));
@@ -140,6 +145,10 @@
   <div class="hint">Free market-test build. Works with any link you can copy. On Android you can also “Share → ReelCheck”.</div>
 
   <div id="out"></div>
+
+  <div id="quizperm" class="quizcard card"></div>
+
+  <div id="insta"></div>
 
   <div id="support" class="support"></div>
 </div>
@@ -189,8 +198,7 @@ function buildLoading(){
        <div class="pipe">${stages}</div>
        <div class="wall"><div class="lbl">Cross-checking against trusted sources…</div>
          <div class="circles">${circles}</div></div>
-     </div>
-     <div class="card quizcard" id="quizcard"></div>`;
+     </div>`;
 
   const stageEls = [...document.querySelectorAll('.stage')];
   stageEls[0].classList.add('active');
@@ -210,20 +218,18 @@ function buildLoading(){
     circEls[(ci+1) % circEls.length].classList.add('on');
     ci++;
   }, 260));
-
-  renderQuiz();
 }
 function stopLoading(){ loaders.forEach(clearInterval); loaders = []; }
 
 function renderQuiz(){
-  const el = document.getElementById("quizcard");
+  const el = document.getElementById("quizperm");
   if(!el) return;
   if(!quizData.length){ el.innerHTML = `<h3>🎯 Spot the fake</h3><p class="qsub">Loading questions…</p>`; return; }
   const q = quizData[quizIdx % quizData.length];
   el.innerHTML =
     `<div class="qscore">Score ${quizScore}/${quizAnswered}</div>
-     <h3>🎯 Spot the fake — while you wait</h3>
-     <div class="qsub">Real headline or misinformation? Tap your guess.</div>
+     <h3>🎯 Spot the fake news</h3>
+     <div class="qsub">Real headline or misinformation? Tap your guess — play anytime.</div>
      <div class="qstmt">“${esc(q.statement)}”</div>
      <div class="qbtns"><button class="real" data-g="0">✅ Real</button><button class="fake" data-g="1">🚫 Fake</button></div>
      <div id="qans"></div>`;
@@ -362,9 +368,25 @@ function renderSupport(cfg){
   };
 }
 
+// ---- our Instagram ----
+const IG_SVG = `<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+  <defs><linearGradient id="ig" x1="0" y1="24" x2="24" y2="0">
+    <stop stop-color="#feda75"/><stop offset=".45" stop-color="#d62976"/><stop offset="1" stop-color="#4f5bd5"/>
+  </linearGradient></defs>
+  <rect x="2" y="2" width="20" height="20" rx="6" fill="url(#ig)"/>
+  <circle cx="12" cy="12" r="4.6" fill="none" stroke="#fff" stroke-width="2"/>
+  <circle cx="17.4" cy="6.6" r="1.3" fill="#fff"/></svg>`;
+function renderInsta(){
+  const el = document.getElementById("insta");
+  if(!el) return;
+  el.innerHTML = `<a class="instabtn" href="https://www.instagram.com/projectbharat2.0" target="_blank" rel="noopener">
+      ${IG_SVG}<span>Follow us on Instagram — @projectbharat2.0</span></a>`;
+}
+
 // ---- init: runs after all const/let above are initialized ----
 fetchImpact();
-ensureQuiz();
+ensureQuiz().then(renderQuiz);   // permanent quiz, playable from the start
+renderInsta();
 loadConfig();
 if (shared && shared.startsWith("http")) { input.value = shared; run(); }
 if("serviceWorker" in navigator){ navigator.serviceWorker.register("/sw.js").catch(()=>{}); }
