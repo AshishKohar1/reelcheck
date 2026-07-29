@@ -112,10 +112,21 @@
   .qans.wrong{background:rgba(231,76,60,.12);color:var(--danger)}
   .qans b{color:var(--txt)}
   .qnext{margin-top:10px;background:#0e1626;border:1px solid var(--line);color:var(--txt);padding:8px 16px}
+  /* UPI payment panel */
+  .donate{cursor:pointer;font-family:inherit;border:0}
+  .paypanel{margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:#0e1626;text-align:center}
+  .paypanel[hidden]{display:none}
+  .upiqr{background:#fff;border-radius:10px;padding:8px;width:168px;height:168px}
+  .paylead{margin-top:12px;color:var(--txt);font-size:.92rem}
+  .vparow{margin-top:10px;color:var(--mut);font-size:.9rem;display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
+  .vpa{color:var(--txt);font-weight:700}
+  .copyvpa{padding:4px 10px;border-radius:8px;border:1px solid var(--line);background:#131c2e;color:var(--txt);font-size:.8rem;cursor:pointer}
+  .openapp{display:inline-block;margin-top:12px}
+  .payhint{margin-top:10px;color:var(--mut);font-size:.78rem}
   /* our Instagram button / grid */
   #insta{margin-top:18px;text-align:center}
   .igtitle{font-weight:700;margin-bottom:10px;text-align:left}
-  .snapwidget-widget{min-height:220px}
+  .snapwidget-widget,.lightwidget-widget{min-height:220px}
   .igfollow{margin-top:12px}
   .instabtn{display:inline-flex;align-items:center;gap:10px;background:#0e1626;border:1px solid var(--line);
             color:var(--txt);text-decoration:none;padding:11px 18px;border-radius:12px;font-weight:600;font-size:.92rem}
@@ -354,17 +365,35 @@ async function loadConfig(){
 }
 function renderSupport(cfg){
   const el = document.getElementById("support");
-  const donate = cfg.donate_url
-    ? `<a class="donate" href="${esc(cfg.donate_url)}" target="_blank" rel="noopener">❤ Support ReelCheck</a>` : "";
+  // For a UPI link, the button opens a panel (QR + any-app choice). Otherwise
+  // (e.g. a Razorpay page) it just links out.
+  let donateBtn = "";
+  if(cfg.donate_url && cfg.is_upi){
+    donateBtn = `<button class="donate" id="donateBtn">❤ Support ReelCheck</button>`;
+  } else if(cfg.donate_url){
+    donateBtn = `<a class="donate" href="${esc(cfg.donate_url)}" target="_blank" rel="noopener">❤ Support ReelCheck</a>`;
+  }
+  const panel = (cfg.donate_url && cfg.is_upi) ? `
+      <div class="paypanel" id="paypanel" hidden>
+        <img class="upiqr" src="/api/upi-qr.svg" alt="UPI QR code" width="168" height="168">
+        <div class="paylead">Pay with <b>any</b> UPI app — GPay, PhonePe, Paytm, BHIM, WhatsApp…</div>
+        ${cfg.upi_vpa ? `<div class="vparow">UPI ID: <span class="vpa">${esc(cfg.upi_vpa)}</span>
+          <button class="copyvpa" id="copyVpa">Copy</button></div>` : ""}
+        <a class="donate openapp" href="${esc(cfg.donate_url)}">Open my UPI app →</a>
+        <div class="payhint">On a computer? Scan the QR with your phone. On your phone? Tap “Open my UPI app”.</div>
+      </div>` : "";
+
   el.innerHTML = `<div class="supcard">
       <h3>Support this self-funded platform</h3>
       <p>ReelCheck is independent and self-funded — no agenda, no paywall on the truth. Your support (UPI, card, netbanking) keeps it running for everyone.</p>
       <p class="appeal">Even ₹10 helps us fight fake news and work towards an honest, corruption-free future. 🙏</p>
       <div class="supbtns">
-        ${donate}
+        ${donateBtn}
         <a class="ghost" id="shareBtn" href="#">🔗 Share</a>
       </div>
+      ${panel}
     </div>`;
+
   const sb = document.getElementById("shareBtn");
   if(sb) sb.onclick = (e) => {
     e.preventDefault();
@@ -372,6 +401,11 @@ function renderSupport(cfg){
     if(navigator.share){ navigator.share({title:"ReelCheck", text:"Check if a reel is telling the truth", url:u}); }
     else { navigator.clipboard.writeText(u); sb.textContent = "✓ Link copied"; }
   };
+  const db = document.getElementById("donateBtn");
+  if(db) db.onclick = () => { const p = document.getElementById("paypanel"); p.hidden = !p.hidden; };
+  const cv = document.getElementById("copyVpa");
+  if(cv) cv.onclick = () => { navigator.clipboard.writeText(cfg.upi_vpa || "");
+    cv.textContent = "Copied ✓"; setTimeout(() => cv.textContent = "Copy", 1500); };
 }
 
 // ---- our Instagram ----
@@ -387,8 +421,19 @@ function renderInsta(cfg){
   if(!el) return;
   const follow = `<a class="instabtn" href="https://www.instagram.com/projectbharat2.0" target="_blank" rel="noopener">
       ${IG_SVG}<span>Follow us on Instagram — @projectbharat2.0</span></a>`;
-  if(cfg && cfg.snapwidget_id){
-    // load SnapWidget's auto-resize script once
+  if(cfg && cfg.lightwidget_id){
+    // LightWidget — free Instagram grid. Load its auto-resize script once.
+    if(!window.__lwLoaded){
+      const s = document.createElement("script");
+      s.async = true; s.src = "https://cdn.lightwidget.com/widgets/lightwidget.js";
+      document.body.appendChild(s); window.__lwLoaded = true;
+    }
+    el.innerHTML = `<div class="igtitle">📸 From our Instagram — @projectbharat2.0</div>
+      <iframe src="https://lightwidget.com/widgets/${esc(cfg.lightwidget_id)}.html" scrolling="no"
+        allowtransparency="true" class="lightwidget-widget"
+        style="width:100%;border:0;overflow:hidden;" title="Instagram posts"></iframe>
+      <div class="igfollow">${follow}</div>`;
+  } else if(cfg && cfg.snapwidget_id){
     if(!window.__swLoaded){
       const s = document.createElement("script");
       s.async = true; s.src = "https://snapwidget.com/js/snapwidget.js";

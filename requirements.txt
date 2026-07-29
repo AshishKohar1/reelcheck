@@ -6,3 +6,4 @@ httpx==0.28.1
 yt-dlp>=2026.7.4
 python-dotenv==1.0.1
 ddgs==9.0.0
+segno==1.6.1

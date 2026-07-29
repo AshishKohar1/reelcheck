@@ -81,12 +81,30 @@ def sw():
 @app.get("/api/config")
 def api_config():
     """Front-end config for monetization (all optional, set via env vars)."""
+    donate = os.getenv("DONATE_URL", "").strip()
     return {
-        "donate_url": os.getenv("DONATE_URL", "").strip(),
+        "donate_url": donate,
+        "is_upi": donate.startswith("upi:"),
+        "upi_vpa": os.getenv("UPI_VPA", "").strip(),
         "adsense_client": os.getenv("ADSENSE_CLIENT", "").strip(),
         "adsense_slot": os.getenv("ADSENSE_SLOT", "").strip(),
+        "lightwidget_id": os.getenv("LIGHTWIDGET_ID", "").strip(),
         "snapwidget_id": os.getenv("SNAPWIDGET_ID", "").strip(),
     }
+
+
+@app.get("/api/upi-qr.svg")
+def upi_qr():
+    """Scannable QR of the UPI/donate link — works in every UPI app."""
+    url = os.getenv("DONATE_URL", "").strip()
+    if not url:
+        raise HTTPException(status_code=404, detail="No donate URL set")
+    import io, segno
+    from fastapi.responses import Response
+    buf = io.BytesIO()
+    segno.make(url, error="m").save(buf, kind="svg", scale=6, border=2,
+                                    dark="#0b1220", light="#ffffff")
+    return Response(buf.getvalue(), media_type="image/svg+xml", headers=NO_CACHE)
 
 
 @app.get("/api/impact")
