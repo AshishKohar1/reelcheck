@@ -118,6 +118,9 @@
   .paypanel[hidden]{display:none}
   .upiqr{background:#fff;border-radius:10px;padding:8px;width:168px;height:168px}
   .paylead{margin-top:12px;color:var(--txt);font-size:.92rem}
+  .appbtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+  .appbtn{padding:9px 16px;border-radius:10px;background:var(--blue);color:#fff;text-decoration:none;font-weight:700;font-size:.9rem}
+  .appbtn:hover{filter:brightness(1.08)}
   .vparow{margin-top:10px;color:var(--mut);font-size:.9rem;display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
   .vpa{color:var(--txt);font-weight:700}
   .copyvpa{padding:4px 10px;border-radius:8px;border:1px solid var(--line);background:#131c2e;color:var(--txt);font-size:.8rem;cursor:pointer}
@@ -373,14 +376,22 @@ function renderSupport(cfg){
   } else if(cfg.donate_url){
     donateBtn = `<a class="donate" href="${esc(cfg.donate_url)}" target="_blank" rel="noopener">❤ Support ReelCheck</a>`;
   }
+  // Android intent links open a SPECIFIC app (bypasses the phone's default handler).
+  const q = (cfg.donate_url || "").replace(/^upi:\/\//, "");
+  const intent = (pkg) => `intent://${q}#Intent;scheme=upi;package=${pkg};end`;
+  const APPS = [["GPay","com.google.android.apps.nbu.paisa.user"],
+                ["PhonePe","com.phonepe.app"],["Paytm","net.one97.paytm"],
+                ["BHIM","in.org.npci.upiapp"]];
+  const appBtns = APPS.map(([n,p]) => `<a class="appbtn" href="${esc(intent(p))}">${n}</a>`).join("");
   const panel = (cfg.donate_url && cfg.is_upi) ? `
       <div class="paypanel" id="paypanel" hidden>
         <img class="upiqr" src="/api/upi-qr.svg" alt="UPI QR code" width="168" height="168">
-        <div class="paylead">Pay with <b>any</b> UPI app — GPay, PhonePe, Paytm, BHIM, WhatsApp…</div>
-        ${cfg.upi_vpa ? `<div class="vparow">UPI ID: <span class="vpa">${esc(cfg.upi_vpa)}</span>
+        <div class="paylead"><b>On your phone</b> — choose your app:</div>
+        <div class="appbtns">${appBtns}</div>
+        <a class="openapp" href="${esc(cfg.donate_url)}">Any other UPI app →</a>
+        ${cfg.upi_vpa ? `<div class="vparow">or pay to UPI ID: <span class="vpa">${esc(cfg.upi_vpa)}</span>
           <button class="copyvpa" id="copyVpa">Copy</button></div>` : ""}
-        <a class="donate openapp" href="${esc(cfg.donate_url)}">Open my UPI app →</a>
-        <div class="payhint">On a computer? Scan the QR with your phone. On your phone? Tap “Open my UPI app”.</div>
+        <div class="payhint">On a computer? Scan the QR above with any UPI app on your phone.</div>
       </div>` : "";
 
   el.innerHTML = `<div class="supcard">
