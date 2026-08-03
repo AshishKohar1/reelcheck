@@ -376,22 +376,14 @@ function renderSupport(cfg){
   } else if(cfg.donate_url){
     donateBtn = `<a class="donate" href="${esc(cfg.donate_url)}" target="_blank" rel="noopener">❤ Support ReelCheck</a>`;
   }
-  // Android intent links open a SPECIFIC app (bypasses the phone's default handler).
-  const q = (cfg.donate_url || "").replace(/^upi:\/\//, "");
-  const intent = (pkg) => `intent://${q}#Intent;scheme=upi;package=${pkg};end`;
-  const APPS = [["GPay","com.google.android.apps.nbu.paisa.user"],
-                ["PhonePe","com.phonepe.app"],["Paytm","net.one97.paytm"],
-                ["BHIM","in.org.npci.upiapp"]];
-  const appBtns = APPS.map(([n,p]) => `<a class="appbtn" href="${esc(intent(p))}">${n}</a>`).join("");
   const panel = (cfg.donate_url && cfg.is_upi) ? `
       <div class="paypanel" id="paypanel" hidden>
-        <img class="upiqr" src="/api/upi-qr.svg" alt="UPI QR code" width="168" height="168">
-        <div class="paylead"><b>On your phone</b> — choose your app:</div>
-        <div class="appbtns">${appBtns}</div>
-        <a class="openapp" href="${esc(cfg.donate_url)}">Any other UPI app →</a>
+        <img class="upiqr" src="/api/upi-qr.svg" alt="UPI QR code" width="180" height="180">
+        <div class="paylead"><b>Scan this QR</b> in GPay, PhonePe, Paytm, BHIM — or any UPI app.</div>
         ${cfg.upi_vpa ? `<div class="vparow">or pay to UPI ID: <span class="vpa">${esc(cfg.upi_vpa)}</span>
           <button class="copyvpa" id="copyVpa">Copy</button></div>` : ""}
-        <div class="payhint">On a computer? Scan the QR above with any UPI app on your phone.</div>
+        <a class="donate openapp" href="${esc(cfg.donate_url)}">Open a UPI app on this phone →</a>
+        <div class="payhint">💻 On a computer? Scan the QR with your phone.<br>📱 On your phone? Copy the UPI ID into your favourite app, or tap the button above.</div>
       </div>` : "";
 
   el.innerHTML = `<div class="supcard">
