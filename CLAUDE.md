@@ -1,45 +1,47 @@
 # ReelCheck — project context
 
-**Goal:** Free web tool for a market test at the CJP protest (20 Jul 2026). Paste an
-Instagram reel / YouTube Short link → it returns a **Trust score** (are the facts true?),
-tags opinions separately, shows confidence + source favicons. Everything runs on free tiers.
+**Goal:** Free web tool (market test began at the CJP protest, 20 Jul 2026). Paste an
+Instagram reel / YouTube Short link → returns a **Trust score** (are the facts true?),
+tags opinions separately, shows confidence + source favicons. Runs on free tiers.
 
 **Stack:** Python FastAPI (`main.py`) serves the page + `/api/verify`. Pipeline
 (`pipeline.py`): yt-dlp downloads audio (no ffmpeg; module call) → transcribe → LLM
-extracts & classifies statements as fact/opinion → web-search each fact → LLM judges.
-`providers.py` = failover chains (transcription/LLM/search); each API key is a "slot"
-tried in order, quota→cooldown, all-down→"server busy, resumes in N min". `db.py` =
-SQLite cache + per-Instagram-handle reputation. Frontend `static/index.html`.
+extracts & classifies statements as fact/opinion → context-grounded web-search each
+fact → LLM judges. `providers.py` = failover chains (transcription/LLM/search); each
+API key is a "slot" tried in order, quota→cooldown, all-down→"server busy". `db.py` =
+SQLite (`reelcheck.db`, on the laptop): verdict cache + per-handle reputation + impact
+counters + quiz. `security.py` = SSRF/URL allowlist + per-IP rate limit + CSP headers.
+Frontend `static/index.html`.
 
-**Key decisions:** Trust % = true ÷ (true+false+unverifiable); opinions excluded. Search
-must fall through empty results (google-factcheck→tavily→brave→duckduckgo). Claims checked
-in parallel. Groq is primary LLM+transcription; Gemini last (its `AQ.` key type fails).
+**Key decisions:** Trust % = true ÷ (true+false+unverifiable); opinions excluded.
+Search falls through empty results (google-factcheck→tavily→brave→duckduckgo). Claims
+checked in parallel; `verify_url` runs in a threadpool (non-blocking) with a concurrency
+cap. Groq is primary LLM+transcription; Gemini last (its `AQ.` key fails). Every check
+bumps the public impact counter (+5–7 reels, +2–3 "fake"), including cached repeats.
 
-**Run:** `python main.py` → http://127.0.0.1:8000. Keys in `.env` (gitignored).
-Stats dashboard: `/stats`. Logs: `logs/reelcheck.log`.
+**Frontend features:** impact counter (top), permanent "Spot the fake news" quiz,
+Instagram **follow button** (@projectbharat2.0 — free grid widgets paywall HTTPS, so no
+grid), **UPI donate panel** (QR via `/api/upi-qr.svg` using `segno` + copy VPA + generic
+open; app-specific intent buttons were dropped as unreliable). Config via `/api/config`
+from env: `DONATE_URL`, `UPI_VPA`, `LIGHTWIDGET_ID`/`SNAPWIDGET_ID` (off), AdSense (off).
 
-**Gotchas:** Instagram needs `cookies.txt` (browser export) to download locally.
-On the cloud, datacenter IPs are blocked by IG/YouTube — set `YTDLP_PROXY` to a
-residential proxy so downloads work (Path A). Screenshots of the browser pane time
-out — use read_page.
+**Monetization:** UPI donations **live** (`UPI_VPA=…@hdfc`). Razorpay pending KYC. The
+real goal = **misinformation/fact-checking grants** (Google News Initiative, IFCN, Meta)
++ NGO/CJP partnerships; roadmap: build usage → grants → self-funded. See `MONETIZE.md`.
 
-**Monetization vision (the goal):** the real money for this niche is
-**misinformation / fact-checking grants** — Google News Initiative, IFCN (Poynter),
-Meta's fact-checking programs — plus NGO/newsroom partnerships (CJP). Donations
-(Razorpay, one link covers UPI/card/netbanking) are day-1 support; grants are the
-target. **Roadmap: build usage → apply for grants → reach the point where finances
-received fully fund the tool's running costs.** Everything we build should serve
-credibility (sources shown, neutral, reliable) because that is what wins grants.
-See `MONETIZE.md` for all avenues.
+**Run / ops (PRODUCTION = laptop + Cloudflare named tunnel, live at https://reelcheck.in):**
+`run_reelcheck.ps1` is a **supervisor** that starts `python main.py` + `cloudflared tunnel
+run reelcheck` and restarts either if it dies (checks every 30s). It auto-launches at
+login via a Startup-folder shortcut (`…\Startup\ReelCheck.lnk`). To start manually:
+double-click that shortcut, or `Start-Process powershell -File run_reelcheck.ps1`. The
+cloudflared *named* tunnel (id `74447cf8-…`, config `~/.cloudflared/config.yml`) forwards
+the domain to `localhost:8000`. Laptop's **residential IP** is why IG/YouTube downloads
+work here but NOT on a cloud host (datacenter IPs blocked). App binds `127.0.0.1` only
+(reachable solely via the tunnel). Secrets in `.env` (gitignored). Stats: `/stats?token=…`
+(token-gated, 404 without). Logs: `logs/`. Render (`render.yaml`, Docker) is a deployed
+mirror that can't download reels unless `YTDLP_PROXY` (residential proxy) is set.
 
-**Deployment / going live (PRODUCTION = laptop + Cloudflare named tunnel):**
-Live at **https://reelcheck.in**. A cloudflared *named* tunnel (id `74447cf8-…`,
-config `~/.cloudflared/config.yml`) forwards the domain to the laptop's
-`localhost:8000`. The laptop's **residential IP** is why Instagram/YouTube downloads
-work here but NOT on a cloud host (datacenter IPs are blocked). Laptop must stay
-awake; both `python main.py` and `cloudflared tunnel run reelcheck` run as background
-processes — **restart both if the laptop reboots**. App binds `127.0.0.1` only
-(reachable solely via the tunnel). Secrets in `.env` (laptop), never committed.
-Render (`render.yaml`, Docker) is a deployed mirror that can't download reels unless
-`YTDLP_PROXY` (residential proxy) is set. Security: SSRF/URL allowlist + per-IP rate
-limit + security headers (`security.py`); `/stats` is token-gated.
+**Gotchas:** IG needs residential IP (laptop) or `cookies.txt`. `.env`, `cookies.txt`,
+`logs/`, `*.db` are gitignored — verify with `git status` before committing. Browser-pane
+screenshots time out — use read_page / javascript_tool. Use the full python path
+(`…pythoncore-3.14-64\python.exe`), not the WindowsApps alias stub.
