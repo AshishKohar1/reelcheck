@@ -174,7 +174,8 @@ def verify_url(url: str):
     if cached:
         cached["cached"] = True
         cached["reputation"] = db.get_handle_reputation(cached.get("handle") or handle)
-        db.bump_impact()   # count every check, even a cached repeat
+        _tp = cached.get("trust_pct")
+        db.bump_impact(is_fake=(_tp is not None and _tp < 33))   # count every check
         return cached
 
     with tempfile.TemporaryDirectory() as wd:
@@ -231,7 +232,7 @@ def verify_url(url: str):
     }
 
     db.save_verdict(reel_id, handle, url, result, n_true, n_false, n_unv)
-    db.bump_impact()   # feeds the public impact counter (grows briskly per query)
+    db.bump_impact(is_fake=(trust_pct is not None and trust_pct < 33))   # +1 reel; +1 fake if Trust < 33%
     result["reputation"] = db.get_handle_reputation(handle)
     return result
 

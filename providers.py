@@ -22,6 +22,12 @@ ALL_CHAINS = []
 # Live rate-limit headers keyed by api key (only some providers send these).
 RATE_REMAINING = {}
 
+# Model names — env-overridable so a provider decommissioning a model (e.g. Groq
+# retiring llama-3.3-70b) is a one-line .env fix, not a code change.
+GROQ_LLM_MODEL = os.getenv("GROQ_LLM_MODEL", "openai/gpt-oss-120b")
+GROQ_WHISPER_MODEL = os.getenv("GROQ_WHISPER_MODEL", "whisper-large-v3")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b:free")
+
 
 # ── env parsing ───────────────────────────────────────────────────────────────
 def _keys(name):
@@ -218,7 +224,7 @@ def refresh_live_quota():
                 r = httpx.post(
                     "https://api.groq.com/openai/v1/chat/completions",
                     headers={"Authorization": f"Bearer {s.key}"},
-                    json={"model": "llama-3.3-70b-versatile",
+                    json={"model": GROQ_LLM_MODEL,
                           "messages": [{"role": "user", "content": "hi"}], "max_tokens": 1},
                     timeout=30)
                 _note_remaining(s.key, r)
@@ -273,7 +279,7 @@ def _retry_after(resp, default=60):
 def _groq_whisper(key, audio_path, language="hi"):
     with open(audio_path, "rb") as f:
         files = {"file": (os.path.basename(audio_path), f, "audio/mpeg")}
-        data = {"model": "whisper-large-v3", "response_format": "json"}
+        data = {"model": GROQ_WHISPER_MODEL, "response_format": "json"}
         r = httpx.post(
             "https://api.groq.com/openai/v1/audio/transcriptions",
             headers={"Authorization": f"Bearer {key}"},
@@ -364,7 +370,7 @@ def _groq_llm(key, prompt):
     r = httpx.post(
         "https://api.groq.com/openai/v1/chat/completions",
         headers={"Authorization": f"Bearer {key}"},
-        json={"model": "llama-3.3-70b-versatile",
+        json={"model": GROQ_LLM_MODEL,
               "messages": [{"role": "user", "content": prompt}],
               "temperature": 0.1, "response_format": {"type": "json_object"}},
         timeout=90,
@@ -380,7 +386,7 @@ def _openrouter(key, prompt):
     r = httpx.post(
         "https://openrouter.ai/api/v1/chat/completions",
         headers={"Authorization": f"Bearer {key}"},
-        json={"model": "meta-llama/llama-3.3-70b-instruct:free",
+        json={"model": OPENROUTER_MODEL,
               "messages": [{"role": "user", "content": prompt}], "temperature": 0.1},
         timeout=90,
     )

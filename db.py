@@ -173,12 +173,13 @@ def get_impact():
     return {"reels": rows.get("reels_checked", 0), "wrong": rows.get("reels_wrong", 0)}
 
 
-def bump_impact():
-    """Called once per checked reel. Grows the public counters briskly for the
-    market test: +5..7 reels checked, +2..3 flagged with false facts, per query."""
+def bump_impact(is_fake=False):
+    """Called once per checked reel: +1 reel checked; +1 'fake' when the reel's
+    Trust score is below 33%."""
     with _conn() as c:
-        c.execute("UPDATE meta SET value = value + ? WHERE key='reels_checked'", (random.randint(5, 7),))
-        c.execute("UPDATE meta SET value = value + ? WHERE key='reels_wrong'", (random.randint(2, 3),))
+        c.execute("UPDATE meta SET value = value + 1 WHERE key='reels_checked'")
+        if is_fake:
+            c.execute("UPDATE meta SET value = value + 1 WHERE key='reels_wrong'")
 
 
 # ── provider usage persistence (for /stats) ───────────────────────────────────
