@@ -14,10 +14,14 @@ counters + quiz. `security.py` = SSRF/URL allowlist + per-IP rate limit + CSP he
 Frontend `static/index.html`.
 
 **Key decisions:** Trust % = true ÷ (true+false+unverifiable); opinions excluded.
-Search falls through empty results (google-factcheck→tavily→brave→duckduckgo). Claims
-checked in parallel; `verify_url` runs in a threadpool (non-blocking) with a concurrency
-cap. Groq is primary LLM+transcription; Gemini last (its `AQ.` key fails). Every check
-bumps the public impact counter (+5–7 reels, +2–3 "fake"), including cached repeats.
+Search falls through empty results (google-factcheck→tavily→brave→duckduckgo). Facts are
+searched in parallel then judged in ONE batched LLM call (2 LLM calls/reel, not ~5) to
+spare Groq's rate limit; `verify_url` runs in a threadpool (non-blocking) with a
+concurrency cap. Groq is primary LLM (`openai/gpt-oss-120b`) + transcription
+(`whisper-large-v3`); OpenRouter backup (`nvidia/nemotron-3-super-120b-a12b:free`);
+Gemini last (dead key). Model names are env-configurable (`GROQ_LLM_MODEL`,
+`OPENROUTER_MODEL`, `GROQ_WHISPER_MODEL`) since providers retire models often. Every
+check bumps the impact counter (+1 reel; +1 "fake" if Trust < 33%), incl. cached repeats.
 
 **Frontend features:** impact counter (top), permanent "Spot the fake news" quiz,
 Instagram **follow button** (@projectbharat2.0 — free grid widgets paywall HTTPS, so no

@@ -119,51 +119,56 @@ CAPTION: {caption[:1000]}"""
     return facts[:4], opinions[:4], context
 
 
-def _check_one_claim(claim, context=""):
-    """Search for evidence, then judge. One unit of work, safe to run in a thread."""
-    # Ground the search in the reel's topic for far better recall, then accept
-    # only non-empty results so an empty fact-check DB falls through to real search.
+def _search_for(claim, context=""):
+    """Search evidence for one claim (Tavily etc., not Groq). Safe to run in a thread.
+    Grounds the query in the reel's topic and accepts only non-empty results so an
+    empty fact-check DB falls through to real web search."""
     query = f"{claim} {context}".strip()
     evidence, _ = search_chain.run(query, accept=lambda r: len(r) > 0)
-    return judge(claim, evidence)
+    return evidence
 
 
-def judge(claim, evidence):
-    ev = "\n".join(f"- {e['title']} ({e['url']}): {e['snippet']}" for e in evidence[:6])
-    prompt = f"""You are a fact-checker. Judge the CLAIM using the EVIDENCE.
+def judge_all(facts, evidences):
+    """Judge ALL facts in a SINGLE LLM call (was one call per fact). This cuts the
+    LLM calls per reel from ~5 to 2, so we hit Groq's rate limit far less often."""
+    blocks = []
+    for i, (claim, ev) in enumerate(zip(facts, evidences), 1):
+        evtxt = "\n".join(f"  - {e['title']} ({e['url']}): {e['snippet']}" for e in ev[:6]) \
+                or "  (no evidence found)"
+        blocks.append(f"CLAIM {i}: {claim}\nEVIDENCE:\n{evtxt}")
+    prompt = f"""You are a fact-checker. Judge EACH claim below using ONLY that claim's evidence.
 
-How to decide:
-- "true"  — the evidence supports the claim. You MAY reason from a general rule
-  to a specific case it logically covers: if evidence shows a rule applies to
-  "all courtroom persons / all law students", then a claim about a subset
-  (interns, a specific college) IS supported — don't demand the subset be named
-  word-for-word. Judge the substance, not an exact string match.
+How to decide each:
+- "true"  — the evidence supports the claim. You MAY reason from a general rule to a
+  specific case it logically covers (a rule for "all law students" supports a claim
+  about interns) — judge the substance, not an exact string match.
 - "false" — the evidence contradicts the claim.
-- "unverifiable" — ONLY when the evidence is absent, off-topic/irrelevant, or
-  genuinely conflicting. Do not use this just because wording differs.
+- "unverifiable" — ONLY when evidence is absent, off-topic, or genuinely conflicting.
 
-Return JSON:
-{{
- "fact_verdict": "true" | "false" | "unverifiable",
- "inference_note": "<=20 words on whether the conclusion drawn is fair, even if facts are true",
- "confidence": 0-100 integer reflecting how strongly the evidence supports your verdict,
- "reason": "one concise sentence citing what the evidence shows"
-}}
+Return JSON with one entry per claim, in the SAME ORDER and SAME COUNT as the claims:
+{{"verdicts": [
+  {{"fact_verdict": "true|false|unverifiable",
+    "inference_note": "<=20 words on whether the conclusion drawn is fair, even if facts are true",
+    "confidence": 0-100 integer,
+    "reason": "one concise sentence citing what the evidence shows"}}
+]}}
 
-CLAIM: {claim}
-EVIDENCE:
-{ev if ev else "(no evidence found)"}"""
+{chr(10).join(blocks)}"""
     raw, _ = llm_chain.run(prompt)
-    j = _json(raw)
-    return {
-        "claim": claim,
-        "fact_verdict": j.get("fact_verdict", "unverifiable"),
-        "inference_note": j.get("inference_note", ""),
-        "confidence": int(j.get("confidence", 0) or 0),
-        "reason": j.get("reason", ""),
-        "sources": [{"url": e["url"], "domain": _domain(e["url"])}
-                    for e in evidence[:6] if e.get("url")],
-    }
+    verdicts = _json(raw).get("verdicts", [])
+    out = []
+    for i, claim in enumerate(facts):
+        v = verdicts[i] if i < len(verdicts) else {}
+        out.append({
+            "claim": claim,
+            "fact_verdict": v.get("fact_verdict", "unverifiable"),
+            "inference_note": v.get("inference_note", ""),
+            "confidence": int(v.get("confidence", 0) or 0),
+            "reason": v.get("reason", ""),
+            "sources": [{"url": e["url"], "domain": _domain(e["url"])}
+                        for e in evidences[i][:6] if e.get("url")],
+        })
+    return out
 
 
 # ── main entry ────────────────────────────────────────────────────────────────
@@ -195,11 +200,13 @@ def verify_url(url: str):
                 "n_facts": 0, "n_opinions": 0, "trust_pct": None,
                 "summary": "No factual claims or opinions were found in this reel."}
 
-    # Check only the FACTS (opinions aren't verifiable). Parallel = ~one round-trip.
+    # Check only the FACTS (opinions aren't verifiable). Search each in parallel
+    # (Tavily, not Groq), then judge them ALL in one LLM call to spare Groq's quota.
     checked = []
     if facts:
         with ThreadPoolExecutor(max_workers=min(4, len(facts))) as pool:
-            checked = list(pool.map(lambda c: _check_one_claim(c, context), facts))
+            evidences = list(pool.map(lambda c: _search_for(c, context), facts))
+        checked = judge_all(facts, evidences)
     opinion_items = [{"claim": o, "type": "opinion"} for o in opinions]
 
     n_true = sum(1 for c in checked if c["fact_verdict"] == "true")
