@@ -27,6 +27,7 @@ RATE_REMAINING = {}
 GROQ_LLM_MODEL = os.getenv("GROQ_LLM_MODEL", "openai/gpt-oss-120b")
 GROQ_WHISPER_MODEL = os.getenv("GROQ_WHISPER_MODEL", "whisper-large-v3")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3-super-120b-a12b:free")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 
 # ── env parsing ───────────────────────────────────────────────────────────────
@@ -355,7 +356,7 @@ def build_transcription_chain():
 def _gemini(key, prompt):
     r = httpx.post(
         f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-2.0-flash:generateContent?key={key}",
+        f"{GEMINI_MODEL}:generateContent?key={key}",
         json={"contents": [{"parts": [{"text": prompt}]}],
               "generationConfig": {"temperature": 0.1, "response_mime_type": "application/json"}},
         timeout=90,

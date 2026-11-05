@@ -33,19 +33,27 @@ from env: `DONATE_URL`, `UPI_VPA`, `LIGHTWIDGET_ID`/`SNAPWIDGET_ID` (off), AdSen
 real goal = **misinformation/fact-checking grants** (Google News Initiative, IFCN, Meta)
 + NGO/CJP partnerships; roadmap: build usage → grants → self-funded. See `MONETIZE.md`.
 
-**Run / ops (PRODUCTION = laptop + Cloudflare named tunnel, live at https://reelcheck.in):**
-`run_reelcheck.ps1` is a **supervisor** that starts `python main.py` + `cloudflared tunnel
-run reelcheck` and restarts either if it dies (checks every 30s). It auto-launches at
-login via a Startup-folder shortcut (`…\Startup\ReelCheck.lnk`). To start manually:
-double-click that shortcut, or `Start-Process powershell -File run_reelcheck.ps1`. The
+**Run / ops (PRODUCTION = Mac at `/Users/ashish-mac/Projects/reel-check` + Cloudflare named
+tunnel, live at https://reelcheck.in):** two launchd agents in `~/Library/LaunchAgents`
+(`in.reelcheck.app` = `caffeinate -s .venv/bin/python main.py`, `in.reelcheck.tunnel` =
+`cloudflared tunnel run reelcheck`), both `RunAtLoad` + `KeepAlive`, so they start at login
+and restart on death; `caffeinate` keeps an idle Mac from dropping the site. Restart after
+an `.env` or code change: `launchctl kickstart -k gui/$(id -u)/in.reelcheck.app`. See
+DEPLOY.md for the full command set. `run_reelcheck.ps1` is the **old Windows** supervisor
+(hardcoded `C:\` paths, Scheduled Task autostart) and does not run on macOS. The
 cloudflared *named* tunnel (id `74447cf8-…`, config `~/.cloudflared/config.yml`) forwards
-the domain to `localhost:8000`. Laptop's **residential IP** is why IG/YouTube downloads
+the domain to `localhost:8000`. Machine's **residential IP** is why IG/YouTube downloads
 work here but NOT on a cloud host (datacenter IPs blocked). App binds `127.0.0.1` only
 (reachable solely via the tunnel). Secrets in `.env` (gitignored). Stats: `/stats?token=…`
 (token-gated, 404 without). Logs: `logs/`. Render (`render.yaml`, Docker) is a deployed
 mirror that can't download reels unless `YTDLP_PROXY` (residential proxy) is set.
 
 **Gotchas:** IG needs residential IP (laptop) or `cookies.txt`. `.env`, `cookies.txt`,
-`logs/`, `*.db` are gitignored — verify with `git status` before committing. Browser-pane
-screenshots time out — use read_page / javascript_tool. Use the full python path
-(`…pythoncore-3.14-64\python.exe`), not the WindowsApps alias stub.
+`logs/`, `*.db` are gitignored — verify with `git status` before committing (a fresh clone
+therefore re-seeds the impact counter to 2655/877 and loses `cookies.txt`). Browser-pane
+screenshots time out — use read_page / javascript_tool. Use `.venv/bin/python`, not the
+system `python3`. Providers retire models often and the Gemini **model-listing endpoint is
+stale** — `v1beta/models` still advertises `gemini-2.5-flash` while `generateContent` 404s
+with "no longer available to new users"; trust the error's recommendation over the listing.
+Groq rejects `response_format: json_object` with a 400 unless the prompt contains the word
+"json", so a smoke-test prompt must ask for JSON.

@@ -5,6 +5,41 @@ is actually better — see the Instagram note at the bottom.
 
 ---
 
+## Production today — macOS + named tunnel, kept alive by launchd
+
+`reelcheck.in` is served from the Mac at `/Users/ashish-mac/Projects/reel-check`.
+`run_reelcheck.ps1` is the old Windows supervisor and does not run here; launchd
+does that job instead, via two agents in `~/Library/LaunchAgents`:
+
+| Agent | Runs | Notes |
+|---|---|---|
+| `in.reelcheck.app` | `caffeinate -s .venv/bin/python main.py` | `caffeinate` holds a system-sleep assertion for as long as the server lives, so an idle Mac can't take the site down |
+| `in.reelcheck.tunnel` | `cloudflared tunnel run reelcheck` | ingress + credentials from `~/.cloudflared/config.yml` |
+
+Both have `RunAtLoad` and `KeepAlive`, so they start at login and are restarted
+if they die. Day-to-day commands:
+
+```bash
+launchctl kickstart -k gui/$(id -u)/in.reelcheck.app      # restart after an .env or code change
+launchctl print gui/$(id -u)/in.reelcheck.tunnel          # state, pid, last exit code
+launchctl bootout gui/$(id -u)/in.reelcheck.app           # stop until bootstrapped again
+```
+
+Logs stay where the Windows setup put them: `logs/srv.log` and `logs/cf_tunnel.log`.
+
+Setting this up from scratch on a new machine: `brew install cloudflared`, then
+`cloudflared tunnel login` (authorize the `reelcheck.in` zone in the browser),
+`cloudflared tunnel token --cred-file ~/.cloudflared/<tunnel-id>.json reelcheck`,
+write `~/.cloudflared/config.yml` pointing `reelcheck.in` at `http://localhost:8000`,
+create the venv, copy `.env.example` to `.env` and fill in the keys, then
+`launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/in.reelcheck.*.plist`.
+
+Two things the tunnel can't fix: a closed lid on battery still sleeps the Mac
+(`caffeinate -s` only asserts on AC power), and the SQLite DB is gitignored, so a
+fresh clone re-seeds the impact counter instead of carrying the real numbers over.
+
+---
+
 ## Path A — Instant public URL from your laptop (Cloudflare Tunnel)
 
 Best for the protest: it uses your home internet's IP, which downloads Instagram
