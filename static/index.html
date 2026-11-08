@@ -3,12 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0b1220">
+<meta name="theme-color" content="#eceff6">
 <link rel="manifest" href="/manifest.json">
 <title>ReelCheck — Is this reel telling the truth?</title>
 <style>
-  :root{--bg:#0b1220;--card:#131c2e;--line:#233048;--txt:#e8eef8;--mut:#93a2bd;
-        --good:#2ecc71;--ok:#7bd389;--warn:#f1c40f;--danger:#e74c3c;--blue:#4f8cff}
+  /* Light theme. --bg/--sunk are grey with a blue hue, not neutral grey; the
+     status colours are darkened so they stay legible as text on a light card. */
+  :root{--bg:#eceff6;--card:#ffffff;--sunk:#f2f5fa;--line:#d4dbe8;--txt:#18213a;--mut:#5c6a87;
+        --good:#15924f;--ok:#2aa763;--warn:#a67c00;--danger:#d13b2a;--blue:#2f6fe4}
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);
        color:var(--txt);line-height:1.5}
@@ -17,11 +19,25 @@
   .sub{color:var(--mut);margin:0 0 20px}
   .box{display:flex;gap:8px;flex-wrap:wrap}
   input{flex:1;min-width:200px;padding:14px;border-radius:12px;border:1px solid var(--line);
-        background:#0e1626;color:var(--txt);font-size:1rem}
+        background:var(--sunk);color:var(--txt);font-size:1rem}
+  input::placeholder{color:var(--mut)}
   button{padding:14px 20px;border:0;border-radius:12px;background:var(--blue);color:#fff;
          font-size:1rem;font-weight:600;cursor:pointer}
   button:disabled{opacity:.5;cursor:default}
   .hint{color:var(--mut);font-size:.85rem;margin-top:8px}
+  /* the paste target — ringed and pulsing until the field is used, so a
+     first-time visitor can see where the link goes without reading anything */
+  .pastezone{background:var(--card);border:2px solid var(--blue);border-radius:16px;
+             padding:14px;box-shadow:0 0 0 6px rgba(47,110,228,.10);animation:pz 2.6s ease-in-out 4}
+  .pastezone:focus-within{animation:none;box-shadow:0 0 0 6px rgba(47,110,228,.20)}
+  .pzlabel{display:flex;align-items:center;gap:7px;margin-bottom:9px;
+           color:var(--blue);font-size:.85rem;font-weight:700;letter-spacing:.2px}
+  .pzlabel .arrow{font-size:1rem}
+  .pastezone input{background:#fff;border:1px solid var(--line);font-weight:600}
+  .pastezone input:focus{outline:0;border-color:var(--blue)}
+  @keyframes pz{0%,100%{box-shadow:0 0 0 6px rgba(47,110,228,.10)}
+                50%{box-shadow:0 0 0 13px rgba(47,110,228,.04)}}
+  @media (prefers-reduced-motion:reduce){.pastezone{animation:none}}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
         padding:18px;margin-top:18px}
   .banner{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.15rem}
@@ -39,7 +55,8 @@
   .confrow{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:.9rem;margin-top:6px}
   .pill{flex:0 0 auto}
   .infer{color:var(--txt);font-size:.92rem;margin:8px 0;padding-left:10px;border-left:2px solid var(--blue)}
-  .conf{height:7px;background:#0e1626;border-radius:99px;overflow:hidden;flex:1;min-width:90px}
+  /* --line, not --sunk: the track has to stay visible on a white card */
+  .conf{height:7px;background:var(--line);border-radius:99px;overflow:hidden;flex:1;min-width:90px}
   .conf>i{display:block;height:100%;background:var(--blue)}
   .srcs{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap}
   .srcs img{width:18px;height:18px;border-radius:4px;background:#fff}
@@ -58,7 +75,7 @@
   .metrics b{color:var(--txt);font-size:1.05rem}
   .metrics .sep{color:var(--line)}
   .metrics .fc b{color:var(--danger)}
-  .cbtn{margin-top:14px;background:#0e1626;border:1px solid var(--line);color:var(--txt);
+  .cbtn{margin-top:14px;background:var(--sunk);border:1px solid var(--line);color:var(--txt);
         padding:9px 16px;border-radius:10px;font-size:.92rem;font-weight:600}
   .cbtn:hover{border-color:var(--blue)}
   .cbtn.open{border-color:var(--blue);color:var(--blue)}
@@ -69,8 +86,8 @@
   .score.na{color:var(--mut);font-size:1.4rem}
   .tlabel{font-weight:700;font-size:1.05rem}
   .counts{color:var(--mut);font-size:.9rem;margin-top:3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .chip{background:#0e1626;border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:.82rem}
-  .info{margin-left:auto;cursor:pointer;border:1px solid var(--line);background:#0e1626;color:var(--mut);
+  .chip{background:var(--sunk);border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:.82rem}
+  .info{margin-left:auto;cursor:pointer;border:1px solid var(--line);background:var(--sunk);color:var(--mut);
         width:30px;height:30px;border-radius:50%;font-weight:700;font-size:.95rem;flex:0 0 auto}
   .info:hover{color:var(--txt);border-color:var(--blue)}
   .details{margin-top:14px;border-top:1px solid var(--line);padding-top:6px}
@@ -111,10 +128,10 @@
   .qans.right{background:rgba(46,204,113,.12);color:var(--good)}
   .qans.wrong{background:rgba(231,76,60,.12);color:var(--danger)}
   .qans b{color:var(--txt)}
-  .qnext{margin-top:10px;background:#0e1626;border:1px solid var(--line);color:var(--txt);padding:8px 16px}
+  .qnext{margin-top:10px;background:var(--sunk);border:1px solid var(--line);color:var(--txt);padding:8px 16px}
   /* UPI payment panel */
   .donate{cursor:pointer;font-family:inherit;border:0}
-  .paypanel{margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:#0e1626;text-align:center}
+  .paypanel{margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--sunk);text-align:center}
   .paypanel[hidden]{display:none}
   .upiqr{background:#fff;border-radius:10px;padding:8px;width:168px;height:168px}
   .paylead{margin-top:12px;color:var(--txt);font-size:.92rem}
@@ -123,7 +140,7 @@
   .appbtn:hover{filter:brightness(1.08)}
   .vparow{margin-top:10px;color:var(--mut);font-size:.9rem;display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
   .vpa{color:var(--txt);font-weight:700}
-  .copyvpa{padding:4px 10px;border-radius:8px;border:1px solid var(--line);background:#131c2e;color:var(--txt);font-size:.8rem;cursor:pointer}
+  .copyvpa{padding:4px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--txt);font-size:.8rem;cursor:pointer}
   .openapp{display:inline-block;margin-top:12px}
   .payhint{margin-top:10px;color:var(--mut);font-size:.78rem}
   /* our Instagram button / grid */
@@ -131,7 +148,7 @@
   .igtitle{font-weight:700;margin-bottom:10px;text-align:left}
   .snapwidget-widget,.lightwidget-widget{min-height:220px}
   .igfollow{margin-top:12px}
-  .instabtn{display:inline-flex;align-items:center;gap:10px;background:#0e1626;border:1px solid var(--line);
+  .instabtn{display:inline-flex;align-items:center;gap:10px;background:var(--sunk);border:1px solid var(--line);
             color:var(--txt);text-decoration:none;padding:11px 18px;border-radius:12px;font-weight:600;font-size:.92rem}
   .instabtn:hover{border-color:#d62976}
   /* monetization: support card */
@@ -144,7 +161,7 @@
   .supbtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
   .donate{background:#e0245e;color:#fff;text-decoration:none;padding:11px 20px;border-radius:12px;font-weight:700;display:inline-block}
   .donate:hover{filter:brightness(1.08)}
-  .ghost{background:#0e1626;border:1px solid var(--line);color:var(--txt);text-decoration:none;
+  .ghost{background:var(--sunk);border:1px solid var(--line);color:var(--txt);text-decoration:none;
          padding:11px 18px;border-radius:12px;font-weight:600;display:inline-block}
   .ghost:hover{border-color:var(--blue)}
 </style>
@@ -156,9 +173,12 @@
 
   <div class="impact" id="impact"></div>
 
-  <div class="box">
-    <input id="url" placeholder="Paste Instagram reel / YouTube Short link…" autocomplete="off">
-    <button id="go">Check</button>
+  <div class="pastezone">
+    <div class="pzlabel"><span class="arrow">👇</span> Paste the reel link here</div>
+    <div class="box">
+      <input id="url" placeholder="Paste Instagram reel / YouTube Short link…" autocomplete="off">
+      <button id="go">Check</button>
+    </div>
   </div>
   <div class="hint">Free market-test build. Works with any link you can copy. On Android you can also “Share → ReelCheck”.</div>
 
