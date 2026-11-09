@@ -6,6 +6,12 @@
 <meta name="theme-color" content="#eceff6">
 <link rel="manifest" href="/manifest.json">
 <title>ReelCheck — Is this reel telling the truth?</title>
+<meta name="description" content="Paste an Instagram reel or YouTube Short link and ReelCheck fact-checks it: a Trust score, every claim marked true, false or unverifiable, and the sources behind each verdict. Free.">
+<meta property="og:title" content="ReelCheck — find out if a reel is telling the truth">
+<meta property="og:description" content="Paste a reel link. We check every factual claim against trusted sources and show you the evidence. Free, no sign-up.">
+<meta property="og:url" content="https://reelcheck.in/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
 <style>
   /* Light theme. --bg/--sunk are grey with a blue hue, not neutral grey; the
      status colours are darkened so they stay legible as text on a light card. */
@@ -35,6 +41,8 @@
   .pzlabel .arrow{font-size:1rem}
   .pastezone input{background:#fff;border:1px solid var(--line);font-weight:600}
   .pastezone input:focus{outline:0;border-color:var(--blue)}
+  /* on a phone the link is long and the field is the point — stack them */
+  @media (max-width:430px){.box{flex-direction:column}.box button{width:100%}}
   @keyframes pz{0%,100%{box-shadow:0 0 0 6px rgba(47,110,228,.10)}
                 50%{box-shadow:0 0 0 13px rgba(47,110,228,.04)}}
   @media (prefers-reduced-motion:reduce){.pastezone{animation:none}}
@@ -96,11 +104,11 @@
   .op{border-top:1px solid var(--line);padding:12px 0}
   .op .ctext{color:var(--txt)}
   .optag{background:rgba(147,162,189,.15);color:var(--mut)}
-  /* impact counter (always on top) */
-  .impact{display:flex;justify-content:center;gap:8px 18px;flex-wrap:wrap;align-items:center;
-          background:linear-gradient(90deg,rgba(79,140,255,.12),rgba(46,204,113,.10));
-          border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:.92rem}
-  .impact b{color:var(--txt)} .impact .w b{color:var(--danger)}
+  /* impact counter — now the hero's proof strip, so it sits below the CTA */
+  .impact{display:flex;justify-content:center;gap:8px 26px;flex-wrap:wrap;align-items:center;
+          background:rgba(255,255,255,.72);
+          border:1px solid var(--line);border-radius:14px;padding:13px 16px;margin-top:22px;font-size:.95rem}
+  .impact b{color:var(--txt);font-size:1.2rem} .impact .w b{color:var(--danger)}
   /* live pipeline */
   .pipe{margin:2px 0 16px}
   .stage{display:flex;align-items:center;gap:10px;padding:5px 0;color:var(--mut);font-size:.95rem;transition:color .3s}
@@ -164,32 +172,142 @@
   .ghost{background:var(--sunk);border:1px solid var(--line);color:var(--txt);text-decoration:none;
          padding:11px 18px;border-radius:12px;font-weight:600;display:inline-block}
   .ghost:hover{border-color:var(--blue)}
+  /* ── landing-page shell: sticky header, skewed hero, banded sections ───── */
+  .container{max-width:1000px;margin:0 auto;padding:0 18px}
+  .narrow{max-width:720px;margin:0 auto}
+  header.site{position:sticky;top:0;z-index:20;background:rgba(236,239,246,.88);
+              backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .navrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0}
+  .brand{display:flex;align-items:center;gap:9px;color:var(--txt);text-decoration:none;
+         font-weight:800;font-size:1.06rem;letter-spacing:-.2px}
+  .brand svg{flex:0 0 auto}
+  .navlinks{display:flex;gap:20px;font-size:.9rem}
+  .navlinks a{color:var(--mut);text-decoration:none;font-weight:600}
+  .navlinks a:hover{color:var(--blue)}
+  @media (max-width:600px){.navlinks{display:none}}
+  /* the skew is the one flourish borrowed from the reference layout */
+  .hero{background:linear-gradient(158deg,#dde6fa 0%,#eef1f8 48%,#f8ebf2 100%);
+        padding:44px 0 86px;clip-path:polygon(0 0,100% 0,100% calc(100% - 44px),0 100%)}
+  .eyebrow{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line);
+           border-radius:999px;padding:6px 14px;font-size:.8rem;font-weight:700;color:var(--blue)}
+  .hero h1{font-size:clamp(1.85rem,5.4vw,2.85rem);line-height:1.14;letter-spacing:-.6px;
+           margin:16px 0 12px;max-width:16ch}
+  .hero h1 .hl{color:var(--blue)}
+  .lead{font-size:1.05rem;color:var(--mut);margin:0 0 22px;max-width:60ch}
+  .lead b{color:var(--txt)}
+  .section{padding:52px 0}
+  .band{background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .shead{font-size:clamp(1.35rem,3.6vw,1.8rem);margin:0 0 6px;letter-spacing:-.3px}
+  .ssub{color:var(--mut);margin:0 0 26px}
+  .steps{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+  .step{background:var(--sunk);border:1px solid var(--line);border-radius:16px;padding:18px}
+  .step .num{width:34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;
+             display:flex;align-items:center;justify-content:center;font-weight:800;margin-bottom:10px}
+  .step h3{margin:0 0 5px;font-size:1.02rem}
+  .step p{margin:0;color:var(--mut);font-size:.92rem;line-height:1.5}
+  .foot{background:var(--card);border-top:1px solid var(--line);padding:26px 0 34px;
+        text-align:center;color:var(--mut);font-size:.9rem}
+  .foot .brand{justify-content:center;margin-bottom:8px}
+  .foot p{margin:4px 0}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>🛡️ ReelCheck</h1>
-  <p class="sub">Paste a reel link. We check if the facts are true, whether the conclusion is fair, and show our sources.</p>
+<header class="site">
+  <div class="container navrow">
+    <a class="brand" href="/">
+      <svg width="24" height="24" viewBox="-20 -28 40 54" aria-hidden="true">
+        <path d="M-16,-20 L0,-26 L16,-20 L16,-2 C16,10 8,19 0,23 C-8,19 -16,10 -16,-2 Z"
+              fill="none" stroke="currentColor" stroke-width="2.6"/>
+        <path d="M-7,-2 L-1.5,5 L8,-9" fill="none" stroke="var(--blue)" stroke-width="3"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      ReelCheck
+    </a>
+    <nav class="navlinks">
+      <a href="#how">How it works</a>
+      <a href="#quiz">Spot the fake</a>
+      <a href="#support">Support us</a>
+    </nav>
+  </div>
+</header>
 
-  <div class="impact" id="impact"></div>
+<section class="hero">
+  <div class="container">
+    <span class="eyebrow">🛡️ Free · No sign-up · Sources shown</span>
+    <h1>Find out if a reel is <span class="hl">telling the truth</span>.</h1>
+    <p class="lead">Paste any Instagram reel or YouTube Short link. We listen to it, pull out
+      every factual claim, check each one against trusted sources, and give you a
+      <b>Trust score with the evidence</b> — in about 30 seconds.</p>
 
-  <div class="pastezone">
-    <div class="pzlabel"><span class="arrow">👇</span> Paste the reel link here</div>
-    <div class="box">
-      <input id="url" placeholder="Paste Instagram reel / YouTube Short link…" autocomplete="off">
-      <button id="go">Check</button>
+    <div class="pastezone">
+      <div class="pzlabel"><span class="arrow">👇</span> Paste the reel link here</div>
+      <div class="box">
+        <input id="url" placeholder="Paste Instagram reel / YouTube Short link…" autocomplete="off">
+        <button id="go">Check</button>
+      </div>
+    </div>
+    <div class="hint">Works with any link you can copy. On Android you can also “Share → ReelCheck”.</div>
+
+    <div class="impact" id="impact"></div>
+  </div>
+</section>
+
+<div class="container narrow"><div id="out"></div></div>
+
+<section class="section band" id="how">
+  <div class="container">
+    <h2 class="shead">How it works</h2>
+    <p class="ssub">Three steps, no account, nothing to install.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="num">1</div>
+        <h3>Paste the link</h3>
+        <p>Copy a reel or Short from Instagram, YouTube, Facebook, X or TikTok and drop it in the box above.</p>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <h3>We check the claims</h3>
+        <p>The audio is transcribed, each factual statement is separated from opinion, and every fact is
+           searched against fact-check databases and trusted news.</p>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <h3>You see the evidence</h3>
+        <p>A Trust score, each claim marked true, false or unverifiable, and the sources behind
+           every verdict — so you can judge for yourself.</p>
+      </div>
     </div>
   </div>
-  <div class="hint">Free market-test build. Works with any link you can copy. On Android you can also “Share → ReelCheck”.</div>
+</section>
 
-  <div id="out"></div>
+<section class="section" id="quiz">
+  <div class="container narrow">
+    <div id="quizperm" class="quizcard card"></div>
+  </div>
+</section>
 
-  <div id="quizperm" class="quizcard card"></div>
+<section class="section band">
+  <div class="container narrow">
+    <div id="insta"></div>
+    <div id="support" class="support"></div>
+  </div>
+</section>
 
-  <div id="insta"></div>
-
-  <div id="support" class="support"></div>
-</div>
+<footer class="foot">
+  <div class="container">
+    <div class="brand">
+      <svg width="22" height="22" viewBox="-20 -28 40 54" aria-hidden="true">
+        <path d="M-16,-20 L0,-26 L16,-20 L16,-2 C16,10 8,19 0,23 C-8,19 -16,10 -16,-2 Z"
+              fill="none" stroke="currentColor" stroke-width="2.6"/>
+        <path d="M-7,-2 L-1.5,5 L8,-9" fill="none" stroke="var(--blue)" stroke-width="3"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      ReelCheck
+    </div>
+    <p>Independent and self-funded. No paywall on the truth.</p>
+    <p>reelcheck.in · <a href="https://www.instagram.com/projectbharat2.0" target="_blank" rel="noopener">@projectbharat2.0</a></p>
+  </div>
+</footer>
 
 <script>
 const $ = s => document.querySelector(s);
@@ -293,6 +411,8 @@ async function run(){
   go.disabled = true;
   await ensureQuiz();
   buildLoading();
+  // the result area sits below the hero, so bring it into view as it fills
+  out.scrollIntoView({behavior:"smooth", block:"start"});
   try{
     const r = await fetch("/api/verify", {method:"POST", headers:{"Content-Type":"application/json"},
                                           body: JSON.stringify({url})});
